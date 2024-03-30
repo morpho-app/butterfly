@@ -123,7 +123,7 @@ import com.atproto.repo.CreateRecordResponse
 import com.atproto.repo.DeleteRecordRequest
 import com.atproto.repo.DescribeRepoQuery
 import com.atproto.repo.DescribeRepoResponse
-import com.atproto.repo.GetRecordResponse
+
 import com.atproto.repo.ListMissingBlobsQuery
 import com.atproto.repo.ListMissingBlobsResponse
 import com.atproto.repo.ListRecordsQuery

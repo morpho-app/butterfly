@@ -7,7 +7,7 @@ import kotlin.Pair
 import kotlin.String
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
-import sh.christian.ozone.api.model.ReadOnlyList
+import com.morpho.butterfly.model.ReadOnlyList
 
 @Serializable
 public data class FetchLabelsQueryParams(

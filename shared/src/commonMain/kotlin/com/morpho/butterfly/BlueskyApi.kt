@@ -38,7 +38,7 @@ import tools.ozone.moderation.QueryEventsResponse
 import tools.ozone.moderation.QueryStatusesQueryParams
 import tools.ozone.moderation.QueryStatusesResponse
 
-public interface BlueskyApi {
+interface BlueskyApi {
     /**
      * Allow a labeler to apply labels directly.
      */
