@@ -58,12 +58,16 @@ import app.bsky.graph.GetListsQuery
 import app.bsky.graph.GetListsResponse
 import app.bsky.graph.GetMutesQuery
 import app.bsky.graph.GetMutesResponse
+import app.bsky.graph.GetRelationshipsQuery
+import app.bsky.graph.GetRelationshipsResponse
 import app.bsky.graph.GetSuggestedFollowsByActorQuery
 import app.bsky.graph.GetSuggestedFollowsByActorResponse
 import app.bsky.graph.MuteActorListRequest
 import app.bsky.graph.MuteActorRequest
 import app.bsky.graph.UnmuteActorListRequest
 import app.bsky.graph.UnmuteActorRequest
+import app.bsky.labeler.GetServicesQuery
+import app.bsky.labeler.GetServicesResponse
 import app.bsky.notification.GetUnreadCountQuery
 import app.bsky.notification.GetUnreadCountResponse
 import app.bsky.notification.ListNotificationsQuery
@@ -75,6 +79,7 @@ import app.bsky.unspecced.GetPopularFeedGeneratorsQuery
 import app.bsky.unspecced.GetPopularFeedGeneratorsResponse
 import app.bsky.unspecced.GetPopularQuery
 import app.bsky.unspecced.GetPopularResponse
+import app.bsky.unspecced.GetTaggedSuggestionsResponse
 import app.bsky.unspecced.GetTimelineSkeletonQuery
 import app.bsky.unspecced.GetTimelineSkeletonResponse
 import app.bsky.unspecced.SearchActorsSkeletonQuery
@@ -84,6 +89,10 @@ import app.bsky.unspecced.SearchPostsSkeletonResponse
 import com.atproto.admin.DisableAccountInvitesRequest
 import com.atproto.admin.DisableInviteCodesRequest
 import com.atproto.admin.EnableAccountInvitesRequest
+import com.atproto.admin.GetAccountInfoQuery
+import com.atproto.admin.GetAccountInfoResponse
+import com.atproto.admin.GetAccountInfosQuery
+import com.atproto.admin.GetAccountInfosResponse
 import com.atproto.admin.GetInviteCodesQuery
 import com.atproto.admin.GetInviteCodesResponse
 
@@ -92,8 +101,15 @@ import com.atproto.admin.SendEmailResponse
 
 import com.atproto.admin.UpdateAccountEmailRequest
 import com.atproto.admin.UpdateAccountHandleRequest
+import com.atproto.admin.UpdateAccountPasswordRequest
+import com.atproto.admin.UpdateSubjectStatusRequest
+import com.atproto.admin.UpdateSubjectStatusResponse
+import com.atproto.identity.GetRecommendedDidCredentialsResponse
 import com.atproto.identity.ResolveHandleQuery
 import com.atproto.identity.ResolveHandleResponse
+import com.atproto.identity.SignPlcOperationRequest
+import com.atproto.identity.SignPlcOperationResponse
+import com.atproto.identity.SubmitPlcOperationRequest
 import com.atproto.identity.UpdateHandleRequest
 import com.atproto.label.QueryLabels
 import com.atproto.label.QueryLabelsResponse
@@ -108,11 +124,14 @@ import com.atproto.repo.DeleteRecordRequest
 import com.atproto.repo.DescribeRepoQuery
 import com.atproto.repo.DescribeRepoResponse
 import com.atproto.repo.GetRecordResponse
+import com.atproto.repo.ListMissingBlobsQuery
+import com.atproto.repo.ListMissingBlobsResponse
 import com.atproto.repo.ListRecordsQuery
 import com.atproto.repo.ListRecordsResponse
 import com.atproto.repo.PutRecordRequest
 import com.atproto.repo.PutRecordResponse
 import com.atproto.repo.UploadBlobResponse
+import com.atproto.server.CheckAccountStatusResponse
 import com.atproto.server.ConfirmEmailRequest
 import com.atproto.server.CreateAccountRequest
 import com.atproto.server.CreateAccountResponse
@@ -124,15 +143,20 @@ import com.atproto.server.CreateInviteCodesRequest
 import com.atproto.server.CreateInviteCodesResponse
 import com.atproto.server.CreateSessionRequest
 import com.atproto.server.CreateSessionResponse
+import com.atproto.server.DeactivateAccountRequest
 import com.atproto.server.DeleteAccountRequest
 import com.atproto.server.DescribeServerResponse
 import com.atproto.server.GetAccountInviteCodesQuery
 import com.atproto.server.GetAccountInviteCodesResponse
+import com.atproto.server.GetServiceAuthQuery
+import com.atproto.server.GetServiceAuthResponse
 import com.atproto.server.GetSessionResponse
 import com.atproto.server.ListAppPasswordsResponse
 import com.atproto.server.RefreshSessionResponse
 import com.atproto.server.RequestEmailUpdateResponse
 import com.atproto.server.RequestPasswordResetRequest
+import com.atproto.server.ReserveSigningKeyRequest
+import com.atproto.server.ReserveSigningKeyResponse
 import com.atproto.server.ResetPasswordRequest
 import com.atproto.server.RevokeAppPasswordRequest
 import com.atproto.server.UpdateEmailRequest
@@ -150,6 +174,9 @@ import com.atproto.sync.NotifyOfUpdateRequest
 import com.atproto.sync.RequestCrawlRequest
 import com.atproto.sync.SubscribeReposMessage
 import com.atproto.sync.SubscribeReposQuery
+import com.atproto.temp.CheckSignupQueueResponse
+import com.atproto.temp.FetchLabelsQueryParams
+import com.atproto.temp.FetchLabelsResponse
 import com.morpho.butterfly.BlueskyApi
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
@@ -162,6 +189,20 @@ import com.morpho.butterfly.xrpc.query
 import com.morpho.butterfly.xrpc.subscription
 import com.morpho.butterfly.xrpc.toAtpResult
 import com.morpho.butterfly.xrpc.withXrpcConfiguration
+import tools.ozone.communication.CreateTemplateRequest
+import tools.ozone.communication.CreateTemplateResponse
+import tools.ozone.communication.ListTemplatesResponse
+import tools.ozone.communication.UpdateTemplateRequest
+import tools.ozone.communication.UpdateTemplateResponse
+import tools.ozone.moderation.EmitEventRequest
+import tools.ozone.moderation.EmitEventResponse
+import tools.ozone.moderation.GetEventQueryParams
+import tools.ozone.moderation.GetEventResponse
+import tools.ozone.moderation.GetRecordQuery
+import tools.ozone.moderation.QueryEventsQueryParams
+import tools.ozone.moderation.QueryEventsResponse
+import tools.ozone.moderation.QueryStatusesQueryParams
+import tools.ozone.moderation.QueryStatusesResponse
 import app.bsky.graph.GetBlocksQuery as GraphGetBlocksQuery
 import com.atproto.repo.GetRecordQuery as RepoGetRecordQuery
 import com.atproto.repo.GetRecordResponse as RepoGetRecordResponse
@@ -193,6 +234,26 @@ public class XrpcBlueskyApi(
       path = "/xrpc/com.atproto.repo.applyWrites",
       body = request,
       encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Returns the status of an account, especially as pertaining to import or recovery. Can be called
+   * many times over the course of an account migration. Requires auth and can only be called
+   * pertaining to oneself.
+   */
+  override suspend fun checkAccountStatus(): Result<CheckAccountStatusResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.server.checkAccountStatus",
+    ).toAtpResult()
+  }
+
+  /**
+   * Check accounts location in signup queue.
+   */
+  override suspend fun checkSignupQueue(): Result<CheckSignupQueueResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.temp.checkSignupQueue",
     ).toAtpResult()
   }
 
@@ -292,6 +353,30 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Administrative action to create a new, re-usable communication (email for now) template.
+   */
+  override suspend fun createTemplate(request: CreateTemplateRequest): Result<CreateTemplateResponse> {
+    return client.procedure(
+      path = "/xrpc/tools.ozone.communication.createTemplate",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Deactivates a currently active account. Stops serving of repo, and future writes to repo until
+   * reactivated. Used to finalize account migration with the old host after the account has been
+   * activated on the new host.
+   */
+  override suspend fun deactivateAccount(request: DeactivateAccountRequest): Result<Unit> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.server.deactivateAccount",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
    * Delete a user account with a token and password.
    */
   override suspend fun deleteAccount(request: DeleteAccountRequest): Result<Unit> {
@@ -375,6 +460,17 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Take a moderation action on an actor.
+   */
+  override suspend fun emitEvent(request: EmitEventRequest): Result<EmitEventResponse> {
+    return client.procedure(
+      path = "/xrpc/tools.ozone.moderation.emitEvent",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
    * Re-enable an accounts ability to receive invite codes
    */
   override suspend fun enableAccountInvites(request: EnableAccountInvitesRequest):
@@ -383,6 +479,33 @@ public class XrpcBlueskyApi(
       path = "/xrpc/com.atproto.admin.enableAccountInvites",
       body = request,
       encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  override suspend fun fetchLabels(params: FetchLabelsQueryParams): Result<FetchLabelsResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.temp.fetchLabels",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get details about an account.
+   */
+  override suspend fun getAccountInfo(params: GetAccountInfoQuery): Result<GetAccountInfoResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.admin.getAccountInfo",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get details about some accounts.
+   */
+  override suspend fun getAccountInfos(params: GetAccountInfosQuery): Result<GetAccountInfosResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.admin.getAccountInfos",
+      queryParams = params.asList(),
     ).toAtpResult()
   }
 
@@ -467,6 +590,16 @@ public class XrpcBlueskyApi(
   override suspend fun getCheckout(params: GetCheckoutQuery): Result<ByteArray> {
     return client.query(
       path = "/xrpc/com.atproto.sync.getCheckout",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get details about a moderation event.
+   */
+  override suspend fun getEvent(params: GetEventQueryParams): Result<GetEventResponse> {
+    return client.query(
+      path = "/xrpc/tools.ozone.moderation.getEvent",
       queryParams = params.asList(),
     ).toAtpResult()
   }
@@ -701,6 +834,16 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Describe the credentials that should be included in the DID doc of an account that is migrating
+   * to this service.
+   */
+  override suspend fun getRecommendedDidCredentials(): Result<GetRecommendedDidCredentialsResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.identity.getRecommendedDidCredentials",
+    ).toAtpResult()
+  }
+
+  /**
    * Get a record.
    */
   override suspend fun getRecord(params: RepoGetRecordQuery):
@@ -721,6 +864,27 @@ public class XrpcBlueskyApi(
     ).toAtpResult()
   }
 
+  /**
+   * Get details about a record.
+   */
+  override suspend fun getRecord(params: GetRecordQuery): Result<tools.ozone.moderation.GetRecordResponse> {
+    return client.query(
+      path = "/xrpc/tools.ozone.moderation.getRecord",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Enumerates public relationships between one account, and a list of other accounts. Does not
+   * require auth.
+   */
+  override suspend fun getRelationships(params: GetRelationshipsQuery): Result<GetRelationshipsResponse> {
+    return client.query(
+      path = "/xrpc/app.bsky.graph.getRelationships",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
 
   /**
    * Gets the did's repo, optionally catching up from a specific revision.
@@ -736,6 +900,26 @@ public class XrpcBlueskyApi(
       Result<GetRepostedByResponse> {
     return client.query(
       path = "/xrpc/app.bsky.feed.getRepostedBy",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get a signed token on behalf of the requesting DID for the requested service.
+   */
+  override suspend fun getServiceAuth(params: GetServiceAuthQuery): Result<GetServiceAuthResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.server.getServiceAuth",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get information about a list of labeler services.
+   */
+  override suspend fun getServices(params: GetServicesQuery): Result<GetServicesResponse> {
+    return client.query(
+      path = "/xrpc/app.bsky.labeler.getServices",
       queryParams = params.asList(),
     ).toAtpResult()
   }
@@ -783,6 +967,15 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Get a list of suggestions (feeds and users) tagged with categories
+   */
+  override suspend fun getTaggedSuggestions(): Result<GetTaggedSuggestionsResponse> {
+    return client.query(
+      path = "/xrpc/app.bsky.unspecced.getTaggedSuggestions",
+    ).toAtpResult()
+  }
+
+  /**
    * A view of the user's home timeline.
    */
   override suspend fun getTimeline(params: GetTimelineQuery):
@@ -813,6 +1006,17 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Import a repo in the form of a CAR file. Requires Content-Length HTTP header to be set.
+   */
+  override suspend fun importRepo(request: ByteArray): Result<Unit> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.repo.importRepo",
+      body = request,
+      encoding = "application/vnd.ipld.car",
+    ).toAtpResult()
+  }
+
+  /**
    * List all app-specific passwords.
    */
   override suspend fun listAppPasswords(): Result<ListAppPasswordsResponse> {
@@ -827,6 +1031,17 @@ public class XrpcBlueskyApi(
   override suspend fun listBlobs(params: ListBlobsQuery): Result<ListBlobsResponse> {
     return client.query(
       path = "/xrpc/com.atproto.sync.listBlobs",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Returns a list of missing blobs for the requesting account. Intended to be used in the account
+   * migration flow.
+   */
+  override suspend fun listMissingBlobs(params: ListMissingBlobsQuery): Result<ListMissingBlobsResponse> {
+    return client.query(
+      path = "/xrpc/com.atproto.repo.listMissingBlobs",
       queryParams = params.asList(),
     ).toAtpResult()
   }
@@ -857,6 +1072,15 @@ public class XrpcBlueskyApi(
     return client.query(
       path = "/xrpc/com.atproto.sync.listRepos",
       queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * Get list of all communication templates.
+   */
+  override suspend fun listTemplates(): Result<ListTemplatesResponse> {
+    return client.query(
+      path = "/xrpc/tools.ozone.communication.listTemplates",
     ).toAtpResult()
   }
 
@@ -917,12 +1141,32 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * List moderation events related to a subject.
+   */
+  override suspend fun queryEvents(params: QueryEventsQueryParams): Result<QueryEventsResponse> {
+    return client.query(
+      path = "/xrpc/tools.ozone.moderation.queryEvents",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
    * Find labels relevant to the provided URI patterns.
    */
   override suspend fun queryLabels(params: QueryLabels):
       Result<QueryLabelsResponse> {
     return client.query(
       path = "/xrpc/com.atproto.label.queryLabels",
+      queryParams = params.asList(),
+    ).toAtpResult()
+  }
+
+  /**
+   * View moderation statuses of subjects (record or repo).
+   */
+  override suspend fun queryStatuses(params: QueryStatusesQueryParams): Result<QueryStatusesResponse> {
+    return client.query(
+      path = "/xrpc/tools.ozone.moderation.queryStatuses",
       queryParams = params.asList(),
     ).toAtpResult()
   }
@@ -998,6 +1242,28 @@ public class XrpcBlueskyApi(
       Result<Unit> {
     return client.procedure(
       path = "/xrpc/com.atproto.server.requestPasswordReset",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Request an email with a code to in order to request a signed PLC operation. Requires Auth.
+   */
+  override suspend fun requestPlcOperationSignature(): Result<Unit> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.identity.requestPlcOperationSignature",
+    ).toAtpResult()
+  }
+
+  /**
+   * Reserve a repo signing key, for use with account creation. Necessary so that a DID PLC update
+   * operation can be constructed during an account migraiton. Public and does not require auth;
+   * implemented by PDS. NOTE: this endpoint may change when full account migration is implemented.
+   */
+  override suspend fun reserveSigningKey(request: ReserveSigningKeyRequest): Result<ReserveSigningKeyResponse> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.server.reserveSigningKey",
       body = request,
       encoding = "application/json",
     ).toAtpResult()
@@ -1103,6 +1369,29 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Signs a PLC operation to update some value(s) in the requesting DID's document.
+   */
+  override suspend fun signPlcOperation(request: SignPlcOperationRequest): Result<SignPlcOperationResponse> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.identity.signPlcOperation",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Validates a PLC operation to ensure that it doesn't violate a service's constraints or get the
+   * identity into a bad state, then submits it to the PLC registry
+   */
+  override suspend fun submitPlcOperation(request: SubmitPlcOperationRequest): Result<Unit> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.identity.submitPlcOperation",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
    * Subscribe to label updates
    */
   override suspend fun subscribeLabels(params: SubscribeLabelsQuery):
@@ -1169,6 +1458,17 @@ public class XrpcBlueskyApi(
   }
 
   /**
+   * Update the password for a user account as an administrator.
+   */
+  override suspend fun updateAccountPassword(request: UpdateAccountPasswordRequest): Result<Unit> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.admin.updateAccountPassword",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
    * Update an account's email.
    */
   override suspend fun updateEmail(request: UpdateEmailRequest): Result<Unit> {
@@ -1196,6 +1496,29 @@ public class XrpcBlueskyApi(
   override suspend fun updateSeen(request: UpdateSeenRequest): Result<Unit> {
     return client.procedure(
       path = "/xrpc/app.bsky.notification.updateSeen",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Update the service-specific admin status of a subject (account, record, or blob).
+   */
+  override suspend fun updateSubjectStatus(request: UpdateSubjectStatusRequest): Result<UpdateSubjectStatusResponse> {
+    return client.procedure(
+      path = "/xrpc/com.atproto.admin.updateSubjectStatus",
+      body = request,
+      encoding = "application/json",
+    ).toAtpResult()
+  }
+
+  /**
+   * Administrative action to update an existing communication template. Allows passing partial
+   * fields to patch specific fields only.
+   */
+  override suspend fun updateTemplate(request: UpdateTemplateRequest): Result<UpdateTemplateResponse> {
+    return client.procedure(
+      path = "/xrpc/tools.ozone.communication.updateTemplate",
       body = request,
       encoding = "application/json",
     ).toAtpResult()

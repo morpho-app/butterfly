@@ -3,6 +3,8 @@ package com.morpho.butterfly
 import app.bsky.actor.*
 import app.bsky.feed.*
 import app.bsky.graph.*
+import app.bsky.labeler.GetServicesQuery
+import app.bsky.labeler.GetServicesResponse
 import app.bsky.notification.*
 import app.bsky.unspecced.*
 import com.atproto.admin.*
@@ -10,15 +12,31 @@ import com.atproto.identity.*
 import com.atproto.label.*
 import com.atproto.moderation.*
 import com.atproto.repo.*
-import com.atproto.repo.GetRecordQuery
 import com.atproto.repo.GetRecordResponse
 import com.atproto.server.*
+import com.atproto.server.DeleteAccountRequest
 import com.atproto.sync.*
 import com.atproto.sync.GetBlocksQuery
 import com.atproto.sync.GetRepoQuery
+import com.atproto.temp.CheckSignupQueueResponse
+import com.atproto.temp.FetchLabelsQueryParams
+import com.atproto.temp.FetchLabelsResponse
 
 import com.morpho.butterfly.auth.AuthInfo
 import kotlinx.coroutines.flow.Flow
+import tools.ozone.communication.CreateTemplateRequest
+import tools.ozone.communication.CreateTemplateResponse
+import tools.ozone.communication.ListTemplatesResponse
+import tools.ozone.communication.UpdateTemplateRequest
+import tools.ozone.communication.UpdateTemplateResponse
+import tools.ozone.moderation.EmitEventRequest
+import tools.ozone.moderation.EmitEventResponse
+import tools.ozone.moderation.GetEventQueryParams
+import tools.ozone.moderation.GetEventResponse
+import tools.ozone.moderation.QueryEventsQueryParams
+import tools.ozone.moderation.QueryEventsResponse
+import tools.ozone.moderation.QueryStatusesQueryParams
+import tools.ozone.moderation.QueryStatusesResponse
 
 public interface BlueskyApi {
     /**
@@ -30,6 +48,19 @@ public interface BlueskyApi {
      * Apply a batch transaction of creates, updates, and deletes.
      */
     public suspend fun applyWrites(request: ApplyWritesRequest): Result<Unit>
+
+    /**
+     * Returns the status of an account, especially as pertaining to import or recovery. Can be called
+     * many times over the course of an account migration. Requires auth and can only be called
+     * pertaining to oneself.
+     */
+    public suspend fun checkAccountStatus(): Result<CheckAccountStatusResponse>
+
+    /**
+     * Check accounts location in signup queue.
+     */
+    public suspend fun checkSignupQueue(): Result<CheckSignupQueueResponse>
+
 
     /**
      * Confirm an email using a token from com.atproto.server.requestEmailConfirmation.
@@ -77,6 +108,19 @@ public interface BlueskyApi {
             Result<CreateSessionResponse>
 
     /**
+     * Administrative action to create a new, re-usable communication (email for now) template.
+     */
+    public suspend fun createTemplate(request: CreateTemplateRequest):
+            Result<CreateTemplateResponse>
+
+    /**
+     * Deactivates a currently active account. Stops serving of repo, and future writes to repo until
+     * reactivated. Used to finalize account migration with the old host after the account has been
+     * activated on the new host.
+     */
+    public suspend fun deactivateAccount(request: DeactivateAccountRequest): Result<Unit>
+
+    /**
      * Delete a user account with a token and password.
      */
     public suspend fun deleteAccount(request: DeleteAccountRequest): Result<Unit>
@@ -118,9 +162,30 @@ public interface BlueskyApi {
     public suspend fun disableInviteCodes(request: DisableInviteCodesRequest): Result<Unit>
 
     /**
+     * Take a moderation action on an actor.
+     */
+    public suspend fun emitEvent(request: EmitEventRequest): Result<EmitEventResponse>
+
+    /**
      * Re-enable an accounts ability to receive invite codes
      */
     public suspend fun enableAccountInvites(request: EnableAccountInvitesRequest): Result<Unit>
+
+    @Deprecated("DEPRECATED: use queryLabels or subscribeLabels instead -- Fetch all labels from a labeler created after a certain date.")
+    public suspend fun fetchLabels(params: FetchLabelsQueryParams): Result<FetchLabelsResponse>
+
+    /**
+     * Get details about an account.
+     */
+    public suspend fun getAccountInfo(params: GetAccountInfoQuery):
+            Result<GetAccountInfoResponse>
+
+    /**
+     * Get details about some accounts.
+     */
+    public suspend fun getAccountInfos(params: GetAccountInfosQuery):
+            Result<GetAccountInfosResponse>
+
 
     /**
      * Get all invite codes for a given account
@@ -161,10 +226,13 @@ public interface BlueskyApi {
      */
     public suspend fun getBlocks(params: app.bsky.graph.GetBlocksQuery): Result<GetBlocksResponse>
 
-    /**
-     * DEPRECATED - please use com.atproto.sync.getRepo instead
-     */
+    @Deprecated("DEPRECATED - please use com.atproto.sync.getRepo instead")
     public suspend fun getCheckout(params: GetCheckoutQuery): Result<ByteArray>
+
+    /**
+     * Get details about a moderation event.
+     */
+    public suspend fun getEvent(params: GetEventQueryParams): Result<GetEventResponse>
 
     /**
      * Compose and hydrate a feed from a user's selected feed generator
@@ -200,9 +268,7 @@ public interface BlueskyApi {
      */
     public suspend fun getFollows(params: GetFollowsQuery): Result<GetFollowsResponse>
 
-    /**
-     * DEPRECATED - please use com.atproto.sync.getLatestCommit instead
-     */
+    @Deprecated("DEPRECATED - please use com.atproto.sync.getLatestCommit instead")
     public suspend fun getHead(params: GetHeadQuery): Result<GetHeadResponse>
 
     /**
@@ -280,15 +346,35 @@ public interface BlueskyApi {
     public suspend fun getProfiles(params: GetProfilesQuery): Result<GetProfilesResponse>
 
     /**
+     * Describe the credentials that should be included in the DID doc of an account that is migrating
+     * to this service.
+     */
+    public suspend fun getRecommendedDidCredentials():
+            Result<GetRecommendedDidCredentialsResponse>
+
+    /**
      * Get a record.
      */
-    public suspend fun getRecord(params: GetRecordQuery): Result<GetRecordResponse>
+    public suspend fun getRecord(params: com.atproto.repo.GetRecordQuery): Result<GetRecordResponse>
 
     /**
      * Gets blocks needed for existence or non-existence of record.
      */
     public suspend fun getRecord(params: com.atproto.sync.GetRecordQuery): Result<ByteArray>
 
+    /**
+     * Get details about a record.
+     */
+    public suspend fun getRecord(params: tools.ozone.moderation.GetRecordQuery):
+            Result<tools.ozone.moderation.GetRecordResponse>
+
+
+    /**
+     * Enumerates public relationships between one account, and a list of other accounts. Does not
+     * require auth.
+     */
+    public suspend fun getRelationships(params: GetRelationshipsQuery):
+            Result<GetRelationshipsResponse>
 
     /**
      * Gets the did's repo, optionally catching up from a specific revision.
@@ -298,6 +384,17 @@ public interface BlueskyApi {
 
     public suspend fun getRepostedBy(params: GetRepostedByQuery):
             Result<GetRepostedByResponse>
+
+    /**
+     * Get a signed token on behalf of the requesting DID for the requested service.
+     */
+    public suspend fun getServiceAuth(params: GetServiceAuthQuery):
+            Result<GetServiceAuthResponse>
+
+    /**
+     * Get information about a list of labeler services.
+     */
+    public suspend fun getServices(params: GetServicesQuery): Result<GetServicesResponse>
 
     /**
      * Get information about the current session.
@@ -323,6 +420,12 @@ public interface BlueskyApi {
             Result<GetSuggestionsResponse>
 
     /**
+     * Get a list of suggestions (feeds and users) tagged with categories
+     */
+    public suspend fun getTaggedSuggestions(): Result<GetTaggedSuggestionsResponse>
+
+
+    /**
      * A view of the user's home timeline.
      */
     public suspend fun getTimeline(params: GetTimelineQuery): Result<GetTimelineResponse>
@@ -333,8 +436,16 @@ public interface BlueskyApi {
     public suspend fun getTimelineSkeleton(params: GetTimelineSkeletonQuery):
             Result<GetTimelineSkeletonResponse>
 
+    /**
+     * Count the number of unread notifications for the requesting account. Requires auth.
+     */
     public suspend fun getUnreadCount(params: GetUnreadCountQuery):
             Result<GetUnreadCountResponse>
+
+    /**
+     * Import a repo in the form of a CAR file. Requires Content-Length HTTP header to be set.
+     */
+    public suspend fun importRepo(request: ByteArray): Result<Unit>
 
     /**
      * List all app-specific passwords.
@@ -346,6 +457,16 @@ public interface BlueskyApi {
      */
     public suspend fun listBlobs(params: ListBlobsQuery): Result<ListBlobsResponse>
 
+    /**
+     * Returns a list of missing blobs for the requesting account. Intended to be used in the account
+     * migration flow.
+     */
+    public suspend fun listMissingBlobs(params: ListMissingBlobsQuery):
+            Result<ListMissingBlobsResponse>
+
+    /**
+     * Enumerate notifications for the requesting account. Requires auth.
+     */
     public suspend fun listNotifications(params: ListNotificationsQuery):
             Result<ListNotificationsResponse>
 
@@ -358,6 +479,11 @@ public interface BlueskyApi {
      * List dids and root cids of hosted repos
      */
     public suspend fun listRepos(params: ListReposQuery): Result<ListReposResponse>
+
+    /**
+     * Get list of all communication templates.
+     */
+    public suspend fun listTemplates(): Result<ListTemplatesResponse>
 
     /**
      * Mute an actor by did or handle.
@@ -385,10 +511,23 @@ public interface BlueskyApi {
      */
     public suspend fun putRecord(request: PutRecordRequest): Result<PutRecordResponse>
 
+
     /**
-     * Find labels relevant to the provided URI patterns.
+     * List moderation events related to a subject.
+     */
+    public suspend fun queryEvents(params: QueryEventsQueryParams): Result<QueryEventsResponse>
+
+    /**
+     * Find labels relevant to the provided AT-URI patterns. Public endpoint for moderation services,
+     * though may return different or additional results with auth.
      */
     public suspend fun queryLabels(params: QueryLabels): Result<QueryLabelsResponse>
+
+    /**
+     * View moderation statuses of subjects (record or repo).
+     */
+    public suspend fun queryStatuses(params: QueryStatusesQueryParams):
+            Result<QueryStatusesResponse>
 
     /**
      * Refresh an authentication session.
@@ -429,6 +568,24 @@ public interface BlueskyApi {
      * Initiate a user account password reset via email.
      */
     public suspend fun requestPasswordReset(request: RequestPasswordResetRequest): Result<Unit>
+
+    /**
+     * Request a verification code to be sent to the supplied phone number
+     */
+    ///Not supported for privacy reasons
+
+    /**
+     * Request an email with a code to in order to request a signed PLC operation. Requires Auth.
+     */
+    public suspend fun requestPlcOperationSignature(): Result<Unit>
+
+    /**
+     * Reserve a repo signing key, for use with account creation. Necessary so that a DID PLC update
+     * operation can be constructed during an account migraiton. Public and does not require auth;
+     * implemented by PDS. NOTE: this endpoint may change when full account migration is implemented.
+     */
+    public suspend fun reserveSigningKey(request: ReserveSigningKeyRequest):
+            Result<ReserveSigningKeyResponse>
 
     /**
      * Reset a user account password using a token.
@@ -476,12 +633,23 @@ public interface BlueskyApi {
     public suspend fun searchPostsSkeleton(params: SearchPostsSkeletonQuery):
             Result<SearchPostsSkeletonResponse>
 
-
-
     /**
      * Send email to a user's primary email address
      */
     public suspend fun sendEmail(request: SendEmailRequest): Result<SendEmailResponse>
+
+    /**
+     * Signs a PLC operation to update some value(s) in the requesting DID's document.
+     */
+    public suspend fun signPlcOperation(request: SignPlcOperationRequest):
+            Result<SignPlcOperationResponse>
+
+    /**
+     * Validates a PLC operation to ensure that it doesn't violate a service's constraints or get the
+     * identity into a bad state, then submits it to the PLC registry
+     */
+    public suspend fun submitPlcOperation(request: SubmitPlcOperationRequest): Result<Unit>
+
 
     /**
      * Subscribe to label updates
@@ -517,6 +685,11 @@ public interface BlueskyApi {
     public suspend fun updateAccountHandle(request: UpdateAccountHandleRequest): Result<Unit>
 
     /**
+     * Update the password for a user account as an administrator.
+     */
+    public suspend fun updateAccountPassword(request: UpdateAccountPasswordRequest): Result<Unit>
+
+    /**
      * Update an account's email.
      */
     public suspend fun updateEmail(request: UpdateEmailRequest): Result<Unit>
@@ -530,6 +703,19 @@ public interface BlueskyApi {
      * Notify server that the user has seen notifications.
      */
     public suspend fun updateSeen(request: UpdateSeenRequest): Result<Unit>
+
+    /**
+     * Update the service-specific admin status of a subject (account, record, or blob).
+     */
+    public suspend fun updateSubjectStatus(request: UpdateSubjectStatusRequest):
+            Result<UpdateSubjectStatusResponse>
+
+    /**
+     * Administrative action to update an existing communication template. Allows passing partial
+     * fields to patch specific fields only.
+     */
+    public suspend fun updateTemplate(request: UpdateTemplateRequest):
+            Result<UpdateTemplateResponse>
 
     /**
      * Upload a new blob to be added to repo in a later request.

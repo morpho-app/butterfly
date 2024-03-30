@@ -46,7 +46,7 @@ public sealed interface GetServicesResponseViewUnion {
 }
 
 @Serializable
-public data class GetServicesQueryParams(
+public data class GetServicesQuery(
   public val dids: ReadOnlyList<Did>,
   public val detailed: Boolean? = false,
 ) {

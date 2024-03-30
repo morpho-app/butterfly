@@ -1,23 +1,25 @@
-package tools.ozone.moderation
+package com.atproto.admin
 
 import kotlin.Any
 import kotlin.Pair
 import kotlin.String
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.AtUri
-import com.morpho.butterfly.Cid
+import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.ReadOnlyList
 
 @Serializable
-public data class GetRecordQuery(
-  public val uri: AtUri,
-  public val cid: Cid? = null,
+public data class GetAccountInfosQuery(
+  public val dids: ReadOnlyList<Did>,
 ) {
   public fun asList(): ReadOnlyList<Pair<String, Any?>> = buildList {
-    add("uri" to uri)
-    add("cid" to cid)
+    dids.forEach {
+      add("dids" to it)
+    }
   }.toImmutableList()
 }
 
-public typealias GetRecordResponse = RecordViewDetail
+@Serializable
+public data class GetAccountInfosResponse(
+  public val infos: ReadOnlyList<AccountView>,
+)
