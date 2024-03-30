@@ -40,7 +40,7 @@ public data class List(
   public val createdAt: Timestamp,
 ) {
   init {
-    require(name.count() >= 1) {
+    require(name.isNotEmpty()) {
       "name.count() must be >= 1, but was ${name.count()}"
     }
     require(name.count() <= 64) {

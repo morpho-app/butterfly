@@ -24,6 +24,21 @@ public sealed interface PreferencesUnion {
     public val `value`: app.bsky.actor.AdultContentPref,
   ) : PreferencesUnion
 
+  public class LabelersPrefSerializer : KSerializer<LabelersPref> by valueClassSerializer(
+    serialName = "app.bsky.actor.defs#labelersPref",
+    constructor = ::LabelersPref,
+    valueProvider = LabelersPref::value,
+    valueSerializerProvider = { app.bsky.actor.LabelersPref.serializer() },
+  )
+
+  @Serializable(with = LabelersPrefSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.actor.defs#labelersPref")
+  public value class LabelersPref(
+    public val `value`: app.bsky.actor.LabelersPref,
+  ) : PreferencesUnion
+
+
   public class ContentLabelPrefSerializer : KSerializer<ContentLabelPref> by valueClassSerializer(
     serialName = "app.bsky.actor.defs#contentLabelPref",
     constructor = ::ContentLabelPref,

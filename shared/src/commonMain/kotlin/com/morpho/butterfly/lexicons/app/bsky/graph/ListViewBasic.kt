@@ -17,7 +17,7 @@ public data class ListViewBasic(
   public val indexedAt: Timestamp? = null,
 ) {
   init {
-    require(name.count() >= 1) {
+    require(name.isNotEmpty()) {
       "name.count() must be >= 1, but was ${name.count()}"
     }
     require(name.count() <= 64) {

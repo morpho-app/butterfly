@@ -1,11 +1,8 @@
 package app.bsky.actor
 
-import app.bsky.actor.LabelerPrefItem
 import com.morpho.butterfly.MutedWordTarget
 import com.morpho.butterfly.model.ReadOnlyList
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-
 
 
 @Serializable

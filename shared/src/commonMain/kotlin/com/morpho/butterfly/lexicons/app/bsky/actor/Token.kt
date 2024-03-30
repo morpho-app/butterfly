@@ -10,7 +10,7 @@ public enum class Visibility {
   @SerialName("hide")
   HIDE,
   @SerialName("ignore")
-  IGNORE,
+  IGNORE;
 }
 
 public enum class Sort {
@@ -19,7 +19,7 @@ public enum class Sort {
   @SerialName("newest")
   NEWEST,
   @SerialName("most-likes")
-  `MOST-LIKES`,
+  MOST_LIKES,
   @SerialName("random")
-  RANDOM,
+  RANDOM;
 }

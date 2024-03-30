@@ -76,6 +76,8 @@ inline fun <reified T : Any> Flow<XrpcSubscriptionResponse>.toAtpModel(): Flow<T
 inline fun <reified T : Any> Flow<XrpcSubscriptionResponse>.toAtpResult(): Flow<Result<T>> =
   map { response -> runCatching { response.body<T>() } }
 
+
+@Suppress("RemoveRedundantQualifierName")
 suspend inline fun <reified T : Any> HttpResponse.toAtpResult(): Result<T> {
   val headers = headers.entries().associateByTo(mutableMapOf(), { it.key }, { it.value.last() })
 
@@ -86,6 +88,7 @@ suspend inline fun <reified T : Any> HttpResponse.toAtpResult(): Result<T> {
     is StatusCode.Failure -> {
       val maybeBody = runCatching<T> { body() }.getOrNull()
       val maybeError = if (maybeBody == null) {
+
         kotlin.runCatching<AtpError> { body() }.getOrNull()
       } else {
         null

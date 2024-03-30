@@ -9,13 +9,13 @@ sealed interface Server {
 
   @Serializable
   @SerialName("bluesky-social")
-  object BlueskySocial : Server {
+  data object BlueskySocial : Server {
     override val host: String = "https://bsky.social"
   }
 
   @Serializable
   @SerialName("bluesky-appview")
-  object BlueskyAppview : Server {
+  data object BlueskyAppview : Server {
     override val host: String = "https://public.api.bsky.app"
   }
 

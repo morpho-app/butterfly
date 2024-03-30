@@ -18,36 +18,29 @@ import com.morpho.butterfly.storage.RkeyCacheEntry
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
 import com.morpho.butterfly.xrpc.toAtpResult
 import com.morpho.butterfly.xrpc.withXrpcConfiguration
-import io.ktor.client.*
-import io.ktor.client.call.body
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.auth.*
-import io.ktor.client.plugins.cache.*
-import io.ktor.client.plugins.auth.providers.*
-import io.ktor.client.plugins.cache.storage.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
-import io.ktor.http.*
+import io.ktor.http.Url
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.flow.lastOrNull
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.encodeToJsonElement
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import org.koin.core.annotation.ComponentScan
-import org.koin.core.annotation.Module
+import kotlin.collections.set
 
 private const val TAG = "butterfly"
 

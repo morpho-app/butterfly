@@ -2,7 +2,6 @@ package app.bsky.actor
 
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.ReadOnlyList
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable

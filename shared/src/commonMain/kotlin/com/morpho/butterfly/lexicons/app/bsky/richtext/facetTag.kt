@@ -20,5 +20,4 @@ public data class FacetTag(
 @Serializable
 public data class PollBlueOptionFacet(
   public val number: Int,
-) {
-}
+)

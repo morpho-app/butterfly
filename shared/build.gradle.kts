@@ -4,18 +4,25 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kspPlugin)
     alias(libs.plugins.kotlinxAbiPlugin)
+    id("maven-publish")
 }
+
+group = "com.morpho"
+version = "0.1"
 
 kotlin {
     androidTarget {
+        publishLibraryVariants("release")
         compilations.all {
             kotlinOptions {
                 jvmTarget = "1.8"
             }
         }
     }
-    
-    listOf(
+
+    // iOS targets stubbed out for now
+    // Can't build them on my desktop anyway
+    /*listOf(
         iosX64(),
         iosArm64(),
         iosSimulatorArm64()
@@ -24,9 +31,7 @@ kotlin {
             baseName = "shared"
             isStatic = true
         }
-    }
-
-
+    }*/
 
 
     sourceSets {
@@ -61,6 +66,25 @@ kotlin {
     }
 
     task("testClasses")
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "Butterfly"
+            url = uri("https://maven.pkg.github.com/morpho-app/butterfly")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+            }
+        }
+    }
+
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["kotlin"])
+        }
+    }
 }
 
 android {

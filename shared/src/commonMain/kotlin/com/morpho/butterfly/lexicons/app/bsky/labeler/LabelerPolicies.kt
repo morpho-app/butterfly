@@ -2,10 +2,9 @@ package app.bsky.labeler
 
 import com.atproto.label.LabelValue
 import com.atproto.label.LabelValueDefinition
+import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.ReadOnlyList
-import kotlinx.serialization.Contextual
 
 @Serializable
 public data class LabelerPolicies(
@@ -19,6 +18,4 @@ public data class LabelerPolicies(
    * override global label definitions for this labeler.
    */
   public val labelValueDefinitions: ReadOnlyList<LabelValueDefinition> = persistentListOf(),
-) {
-
-}
+)

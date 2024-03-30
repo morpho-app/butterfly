@@ -1,8 +1,7 @@
 package app.bsky.actor
 
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.model.ReadOnlyList
-import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @Serializable
 //@SerialName("app.bsky.actor.GetPreferencesResponse")
