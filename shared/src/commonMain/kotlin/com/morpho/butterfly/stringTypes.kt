@@ -1,6 +1,7 @@
 package com.morpho.butterfly
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline

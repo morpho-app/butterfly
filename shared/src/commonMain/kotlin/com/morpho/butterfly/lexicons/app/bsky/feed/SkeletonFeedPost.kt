@@ -10,7 +10,12 @@ import com.morpho.butterfly.valueClassSerializer
 @Serializable
 public sealed interface SkeletonFeedPostReasonUnion {
   public class SkeletonReasonRepostSerializer : KSerializer<SkeletonReasonRepost> by
-      valueClassSerializer()
+  valueClassSerializer(
+    serialName = "app.bsky.feed.defs#skeletonReasonRepost",
+    constructor = ::SkeletonReasonRepost,
+    valueProvider = SkeletonReasonRepost::value,
+    valueSerializerProvider = { app.bsky.feed.SkeletonReasonRepost.serializer() },
+  )
 
   @Serializable(with = SkeletonReasonRepostSerializer::class)
   @JvmInline

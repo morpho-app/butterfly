@@ -86,25 +86,10 @@ import com.atproto.admin.DisableInviteCodesRequest
 import com.atproto.admin.EnableAccountInvitesRequest
 import com.atproto.admin.GetInviteCodesQuery
 import com.atproto.admin.GetInviteCodesResponse
-import com.atproto.admin.GetModerationActionQuery
-import com.atproto.admin.GetModerationActionResponse
-import com.atproto.admin.GetModerationActionsQuery
-import com.atproto.admin.GetModerationActionsResponse
-import com.atproto.admin.GetModerationReportQuery
-import com.atproto.admin.GetModerationReportResponse
-import com.atproto.admin.GetModerationReportsQuery
-import com.atproto.admin.GetModerationReportsResponse
-import com.atproto.admin.GetRepoResponse
-import com.atproto.admin.ResolveModerationReportsRequest
-import com.atproto.admin.ResolveModerationReportsResponse
-import com.atproto.admin.ReverseModerationActionRequest
-import com.atproto.admin.ReverseModerationActionResponse
-import com.atproto.admin.SearchReposQuery
-import com.atproto.admin.SearchReposResponse
+
 import com.atproto.admin.SendEmailRequest
 import com.atproto.admin.SendEmailResponse
-import com.atproto.admin.TakeModerationActionRequest
-import com.atproto.admin.TakeModerationActionResponse
+
 import com.atproto.admin.UpdateAccountEmailRequest
 import com.atproto.admin.UpdateAccountHandleRequest
 import com.atproto.identity.ResolveHandleQuery
@@ -178,9 +163,6 @@ import com.morpho.butterfly.xrpc.subscription
 import com.morpho.butterfly.xrpc.toAtpResult
 import com.morpho.butterfly.xrpc.withXrpcConfiguration
 import app.bsky.graph.GetBlocksQuery as GraphGetBlocksQuery
-import com.atproto.admin.GetRecordQuery as AdminGetRecordQuery
-import com.atproto.admin.GetRecordResponse as AdminGetRecordResponse
-import com.atproto.admin.GetRepoQuery as AdminGetRepoQuery
 import com.atproto.repo.GetRecordQuery as RepoGetRecordQuery
 import com.atproto.repo.GetRecordResponse as RepoGetRecordResponse
 import com.atproto.sync.GetBlocksQuery as SyncGetBlocksQuery
@@ -646,50 +628,6 @@ public class XrpcBlueskyApi(
   }
 
   /**
-   * View details about a moderation action.
-   */
-  override suspend fun getModerationAction(params: GetModerationActionQuery):
-      Result<GetModerationActionResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getModerationAction",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
-   * List moderation actions related to a subject.
-   */
-  override suspend fun getModerationActions(params: GetModerationActionsQuery):
-      Result<GetModerationActionsResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getModerationActions",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
-   * View details about a moderation report.
-   */
-  override suspend fun getModerationReport(params: GetModerationReportQuery):
-      Result<GetModerationReportResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getModerationReport",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
-   * List moderation reports related to a subject.
-   */
-  override suspend fun getModerationReports(params: GetModerationReportsQuery):
-      Result<GetModerationReportsResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getModerationReports",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
    * Who does the viewer mute?
    */
   override suspend fun getMutes(params: GetMutesQuery): Result<GetMutesResponse> {
@@ -783,16 +721,6 @@ public class XrpcBlueskyApi(
     ).toAtpResult()
   }
 
-  /**
-   * View details about a record.
-   */
-  override suspend fun getRecord(params: AdminGetRecordQuery):
-          Result<GetRecordResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getRecord",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
 
   /**
    * Gets the did's repo, optionally catching up from a specific revision.
@@ -800,16 +728,6 @@ public class XrpcBlueskyApi(
   override suspend fun getRepo(params: SyncGetRepoQuery): Result<ByteArray> {
     return client.query(
       path = "/xrpc/com.atproto.sync.getRepo",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
-   * View details about a repository.
-   */
-  override suspend fun getRepo(params: AdminGetRepoQuery): Result<GetRepoResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.getRepo",
       queryParams = params.asList(),
     ).toAtpResult()
   }
@@ -1108,30 +1026,6 @@ public class XrpcBlueskyApi(
   }
 
   /**
-   * Resolve moderation reports by an action.
-   */
-  override suspend fun resolveModerationReports(request: ResolveModerationReportsRequest):
-      Result<ResolveModerationReportsResponse> {
-    return client.procedure(
-      path = "/xrpc/com.atproto.admin.resolveModerationReports",
-      body = request,
-      encoding = "application/json",
-    ).toAtpResult()
-  }
-
-  /**
-   * Reverse a moderation action.
-   */
-  override suspend fun reverseModerationAction(request: ReverseModerationActionRequest):
-      Result<ReverseModerationActionResponse> {
-    return client.procedure(
-      path = "/xrpc/com.atproto.admin.reverseModerationAction",
-      body = request,
-      encoding = "application/json",
-    ).toAtpResult()
-  }
-
-  /**
    * Revoke an app-specific password by name.
    */
   override suspend fun revokeAppPassword(request: RevokeAppPasswordRequest): Result<Unit> {
@@ -1198,17 +1092,6 @@ public class XrpcBlueskyApi(
   }
 
   /**
-   * Find repositories based on a search term.
-   */
-  override suspend fun searchRepos(params: SearchReposQuery):
-      Result<SearchReposResponse> {
-    return client.query(
-      path = "/xrpc/com.atproto.admin.searchRepos",
-      queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
    * Send email to a user's primary email address
    */
   override suspend fun sendEmail(request: SendEmailRequest): Result<SendEmailResponse> {
@@ -1238,18 +1121,6 @@ public class XrpcBlueskyApi(
     return client.subscription(
       path = "/xrpc/com.atproto.sync.subscribeRepos",
       queryParams = params.asList(),
-    ).toAtpResult()
-  }
-
-  /**
-   * Take a moderation action on a repo.
-   */
-  override suspend fun takeModerationAction(request: TakeModerationActionRequest):
-      Result<TakeModerationActionResponse> {
-    return client.procedure(
-      path = "/xrpc/com.atproto.admin.takeModerationAction",
-      body = request,
-      encoding = "application/json",
     ).toAtpResult()
   }
 

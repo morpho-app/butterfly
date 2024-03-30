@@ -16,7 +16,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface RecordViewRecordEmbedUnion {
-  public class ImagesViewSerializer : KSerializer<ImagesView> by valueClassSerializer()
+  public class ImagesViewSerializer : KSerializer<ImagesView> by valueClassSerializer(
+    serialName = "app.bsky.embed.images#view",
+    constructor = ::ImagesView,
+    valueProvider = ImagesView::value,
+    valueSerializerProvider = { app.bsky.embed.ImagesView.serializer() },
+  )
 
   @Serializable(with = ImagesViewSerializer::class)
   @JvmInline
@@ -25,7 +30,12 @@ public sealed interface RecordViewRecordEmbedUnion {
     public val `value`: app.bsky.embed.ImagesView,
   ) : RecordViewRecordEmbedUnion
 
-  public class ExternalViewSerializer : KSerializer<ExternalView> by valueClassSerializer()
+  public class ExternalViewSerializer : KSerializer<ExternalView> by valueClassSerializer(
+    serialName = "app.bsky.embed.external#view",
+    constructor = ::ExternalView,
+    valueProvider = ExternalView::value,
+    valueSerializerProvider = { app.bsky.embed.ExternalView.serializer() },
+  )
 
   @Serializable(with = ExternalViewSerializer::class)
   @JvmInline
@@ -34,7 +44,12 @@ public sealed interface RecordViewRecordEmbedUnion {
     public val `value`: app.bsky.embed.ExternalView,
   ) : RecordViewRecordEmbedUnion
 
-  public class RecordViewSerializer : KSerializer<RecordView> by valueClassSerializer()
+  public class RecordViewSerializer : KSerializer<RecordView> by valueClassSerializer(
+    serialName = "app.bsky.embed.record#view",
+    constructor = ::RecordView,
+    valueProvider = RecordView::value,
+    valueSerializerProvider = { app.bsky.embed.RecordView.serializer() },
+  )
 
   @Serializable(with = RecordViewSerializer::class)
   @JvmInline
@@ -44,7 +59,12 @@ public sealed interface RecordViewRecordEmbedUnion {
   ) : RecordViewRecordEmbedUnion
 
   public class RecordWithMediaViewSerializer : KSerializer<RecordWithMediaView> by
-      valueClassSerializer()
+  valueClassSerializer(
+    serialName = "app.bsky.embed.recordWithMedia#view",
+    constructor = ::RecordWithMediaView,
+    valueProvider = RecordWithMediaView::value,
+    valueSerializerProvider = { app.bsky.embed.RecordWithMediaView.serializer() },
+  )
 
   @Serializable(with = RecordWithMediaViewSerializer::class)
   @JvmInline
@@ -59,6 +79,9 @@ public data class RecordViewRecord(
   public val uri: AtUri,
   public val cid: Cid,
   public val author: ProfileViewBasic,
+  /**
+   * The record data itself.
+   */
   public val `value`: JsonElement,
   public val labels: ReadOnlyList<Label> = persistentListOf(),
   public val embeds: ReadOnlyList<RecordViewRecordEmbedUnion> = persistentListOf(),

@@ -8,7 +8,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface ReplyRefRootUnion {
-  public class PostViewSerializer : KSerializer<PostView> by valueClassSerializer()
+  public class PostViewSerializer : KSerializer<PostView> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#postView",
+    constructor = ::PostView,
+    valueProvider = PostView::value,
+    valueSerializerProvider = { app.bsky.feed.PostView.serializer() },
+  )
 
   @Serializable(with = PostViewSerializer::class)
   @JvmInline
@@ -17,7 +22,12 @@ public sealed interface ReplyRefRootUnion {
     public val `value`: app.bsky.feed.PostView,
   ) : ReplyRefRootUnion
 
-  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer()
+  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#notFoundPost",
+    constructor = ::NotFoundPost,
+    valueProvider = NotFoundPost::value,
+    valueSerializerProvider = { app.bsky.feed.NotFoundPost.serializer() },
+  )
 
   @Serializable(with = NotFoundPostSerializer::class)
   @JvmInline
@@ -26,7 +36,12 @@ public sealed interface ReplyRefRootUnion {
     public val `value`: app.bsky.feed.NotFoundPost,
   ) : ReplyRefRootUnion
 
-  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer()
+  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#blockedPost",
+    constructor = ::BlockedPost,
+    valueProvider = BlockedPost::value,
+    valueSerializerProvider = { app.bsky.feed.BlockedPost.serializer() },
+  )
 
   @Serializable(with = BlockedPostSerializer::class)
   @JvmInline
@@ -38,7 +53,12 @@ public sealed interface ReplyRefRootUnion {
 
 @Serializable
 public sealed interface ReplyRefParentUnion {
-  public class PostViewSerializer : KSerializer<PostView> by valueClassSerializer()
+  public class PostViewSerializer : KSerializer<PostView> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#postView",
+    constructor = ::PostView,
+    valueProvider = PostView::value,
+    valueSerializerProvider = { app.bsky.feed.PostView.serializer() },
+  )
 
   @Serializable(with = PostViewSerializer::class)
   @JvmInline
@@ -47,7 +67,12 @@ public sealed interface ReplyRefParentUnion {
     public val `value`: app.bsky.feed.PostView,
   ) : ReplyRefParentUnion
 
-  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer()
+  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#notFoundPost",
+    constructor = ::NotFoundPost,
+    valueProvider = NotFoundPost::value,
+    valueSerializerProvider = { app.bsky.feed.NotFoundPost.serializer() },
+  )
 
   @Serializable(with = NotFoundPostSerializer::class)
   @JvmInline
@@ -56,7 +81,12 @@ public sealed interface ReplyRefParentUnion {
     public val `value`: app.bsky.feed.NotFoundPost,
   ) : ReplyRefParentUnion
 
-  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer()
+  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#blockedPost",
+    constructor = ::BlockedPost,
+    valueProvider = BlockedPost::value,
+    valueSerializerProvider = { app.bsky.feed.BlockedPost.serializer() },
+  )
 
   @Serializable(with = BlockedPostSerializer::class)
   @JvmInline

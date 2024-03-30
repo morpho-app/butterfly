@@ -10,8 +10,8 @@ import com.morpho.butterfly.cbor.ByteArrayInput
 import com.morpho.butterfly.cbor.CborDecoder
 import com.morpho.butterfly.cbor.CborReader
 import com.morpho.butterfly.response.AtpError
+import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
 
 data class XrpcSubscriptionResponse(
   val bytes: ByteArray,
@@ -21,18 +21,14 @@ data class XrpcSubscriptionResponse(
 
   @ExperimentalSerializationApi
   fun <T : Any> body(kClass: KClass<T>): T {
-    val info = decodeFromByteArray(XrpcSubscriptionFrame.serializer(), bytes)
+    val frame = decodeFromByteArray(XrpcSubscriptionFrame.serializer(), bytes)
 
     val payloadPosition = bytes.drop(1).indexOfFirst { it.toInt().isCborMapStart() } + 1
     val payloadBytes = bytes.drop(payloadPosition).toByteArray()
 
-    if (info.op == 1 && info.t != null) {
-      val subtype = kClass.sealedSubclasses.firstOrNull { subclass ->
-        subclass.findAnnotation<SerialName>()!!.value.endsWith(info.t)
-      } ?: kClass
-
-      @OptIn(InternalSerializationApi::class)
-      return decodeFromByteArray(subtype.serializer(), payloadBytes)
+    if (frame.op == 1 && frame.t != null) {
+      val serializer = getSerializer(kClass, frame)
+      return decodeFromByteArray(serializer, payloadBytes)
     } else {
       val maybeError = runCatching { decodeFromByteArray(AtpError.serializer(), payloadBytes) }.getOrNull()
       throw XrpcSubscriptionParseException(maybeError)
@@ -48,9 +44,7 @@ data class XrpcSubscriptionResponse(
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
-    if (javaClass != other?.javaClass) return false
-
-    other as XrpcSubscriptionResponse
+    if (other !is XrpcSubscriptionResponse) return false
 
     return bytes.contentEquals(other.bytes)
   }
@@ -70,3 +64,8 @@ data class XrpcSubscriptionResponse(
 }
 
 internal fun Int.isCborMapStart(): Boolean = (this and 0b11100000) == 0b10100000
+
+internal expect fun <T : Any> getSerializer(
+  kClass: KClass<T>,
+  frame: XrpcSubscriptionFrame,
+): KSerializer<out T>

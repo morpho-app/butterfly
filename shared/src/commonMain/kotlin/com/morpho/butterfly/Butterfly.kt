@@ -51,8 +51,7 @@ import org.koin.core.annotation.Module
 
 private const val TAG = "butterfly"
 
-@Module
-@ComponentScan("com.morpho")
+
 class Butterfly(
     private val relay: RelayRepository,
     private val user: LoginRepository

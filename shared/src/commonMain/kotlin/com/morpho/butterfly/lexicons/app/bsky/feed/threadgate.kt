@@ -12,7 +12,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface ThreadgateAllowUnion {
-  public class MentionRuleSerializer : KSerializer<MentionRule> by valueClassSerializer()
+  public class MentionRuleSerializer : KSerializer<MentionRule> by valueClassSerializer(
+    serialName = "app.bsky.feed.threadgate#mentionRule",
+    constructor = ::MentionRule,
+    valueProvider = MentionRule::value,
+    valueSerializerProvider = { ThreadgateMentionRule.serializer() },
+  )
 
   @Serializable(with = MentionRuleSerializer::class)
   @JvmInline
@@ -21,7 +26,12 @@ public sealed interface ThreadgateAllowUnion {
     public val `value`: ThreadgateMentionRule,
   ) : ThreadgateAllowUnion
 
-  public class FollowingRuleSerializer : KSerializer<FollowingRule> by valueClassSerializer()
+  public class FollowingRuleSerializer : KSerializer<FollowingRule> by valueClassSerializer(
+    serialName = "app.bsky.feed.threadgate#followingRule",
+    constructor = ::FollowingRule,
+    valueProvider = FollowingRule::value,
+    valueSerializerProvider = { ThreadgateFollowingRule.serializer() },
+  )
 
   @Serializable(with = FollowingRuleSerializer::class)
   @JvmInline
@@ -30,7 +40,12 @@ public sealed interface ThreadgateAllowUnion {
     public val `value`: ThreadgateFollowingRule,
   ) : ThreadgateAllowUnion
 
-  public class ListRuleSerializer : KSerializer<ListRule> by valueClassSerializer()
+  public class ListRuleSerializer : KSerializer<ListRule> by valueClassSerializer(
+    serialName = "app.bsky.feed.threadgate#listRule",
+    constructor = ::ListRule,
+    valueProvider = ListRule::value,
+    valueSerializerProvider = { ThreadgateListRule.serializer() },
+  )
 
   @Serializable(with = ListRuleSerializer::class)
   @JvmInline

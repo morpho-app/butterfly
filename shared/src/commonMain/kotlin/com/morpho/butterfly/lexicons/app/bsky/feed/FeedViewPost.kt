@@ -8,7 +8,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface FeedViewPostReasonUnion {
-  public class ReasonRepostSerializer : KSerializer<ReasonRepost> by valueClassSerializer()
+  public class ReasonRepostSerializer : KSerializer<ReasonRepost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#reasonRepost",
+    constructor = ::ReasonRepost,
+    valueProvider = ReasonRepost::value,
+    valueSerializerProvider = { app.bsky.feed.ReasonRepost.serializer() },
+  )
 
   @Serializable(with = ReasonRepostSerializer::class)
   @JvmInline

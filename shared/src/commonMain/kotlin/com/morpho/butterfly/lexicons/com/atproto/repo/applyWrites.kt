@@ -10,9 +10,15 @@ import com.morpho.butterfly.Cid
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.valueClassSerializer
 
+
 @Serializable
 public sealed interface WritesUnion {
-  public class CreateSerializer : KSerializer<Create> by valueClassSerializer()
+  public class CreateSerializer : KSerializer<Create> by valueClassSerializer(
+    serialName = "com.atproto.repo.applyWrites#create",
+    constructor = ::Create,
+    valueProvider = Create::value,
+    valueSerializerProvider = { ApplyWritesCreate.serializer() },
+  )
 
   @Serializable(with = CreateSerializer::class)
   @JvmInline
@@ -21,7 +27,12 @@ public sealed interface WritesUnion {
     public val `value`: ApplyWritesCreate,
   ) : WritesUnion
 
-  public class UpdateSerializer : KSerializer<Update> by valueClassSerializer()
+  public class UpdateSerializer : KSerializer<Update> by valueClassSerializer(
+    serialName = "com.atproto.repo.applyWrites#update",
+    constructor = ::Update,
+    valueProvider = Update::value,
+    valueSerializerProvider = { ApplyWritesUpdate.serializer() },
+  )
 
   @Serializable(with = UpdateSerializer::class)
   @JvmInline
@@ -30,7 +41,12 @@ public sealed interface WritesUnion {
     public val `value`: ApplyWritesUpdate,
   ) : WritesUnion
 
-  public class DeleteSerializer : KSerializer<Delete> by valueClassSerializer()
+  public class DeleteSerializer : KSerializer<Delete> by valueClassSerializer(
+    serialName = "com.atproto.repo.applyWrites#delete",
+    constructor = ::Delete,
+    valueProvider = Delete::value,
+    valueSerializerProvider = { ApplyWritesDelete.serializer() },
+  )
 
   @Serializable(with = DeleteSerializer::class)
   @JvmInline

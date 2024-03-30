@@ -9,10 +9,16 @@ import com.morpho.butterfly.Language
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
 import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface PostEmbedUnion {
-  public class ImagesSerializer : KSerializer<Images> by valueClassSerializer()
+  public class ImagesSerializer : KSerializer<Images> by valueClassSerializer(
+    serialName = "app.bsky.embed.images",
+    constructor = ::Images,
+    valueProvider = Images::value,
+    valueSerializerProvider = { app.bsky.embed.Images.serializer() },
+  )
 
   @Serializable(with = ImagesSerializer::class)
   @JvmInline
@@ -21,7 +27,12 @@ public sealed interface PostEmbedUnion {
     public val `value`: app.bsky.embed.Images,
   ) : PostEmbedUnion
 
-  public class ExternalSerializer : KSerializer<External> by valueClassSerializer()
+  public class ExternalSerializer : KSerializer<External> by valueClassSerializer(
+    serialName = "app.bsky.embed.external",
+    constructor = ::External,
+    valueProvider = External::value,
+    valueSerializerProvider = { app.bsky.embed.External.serializer() },
+  )
 
   @Serializable(with = ExternalSerializer::class)
   @JvmInline
@@ -30,15 +41,12 @@ public sealed interface PostEmbedUnion {
     public val `value`: app.bsky.embed.External,
   ) : PostEmbedUnion
 
-  public class ExternalMainSerializer : KSerializer<ExternalMain> by valueClassSerializer()
-  @Serializable(with = ExternalMainSerializer::class)
-  @JvmInline
-  @SerialName("app.bsky.embed.external#main")
-  public value class ExternalMain(
-    public val `value`: app.bsky.embed.ExternalMain,
-  ) : PostEmbedUnion
-
-  public class RecordSerializer : KSerializer<Record> by valueClassSerializer()
+  public class RecordSerializer : KSerializer<Record> by valueClassSerializer(
+    serialName = "app.bsky.embed.record",
+    constructor = ::Record,
+    valueProvider = Record::value,
+    valueSerializerProvider = { app.bsky.embed.Record.serializer() },
+  )
 
   @Serializable(with = RecordSerializer::class)
   @JvmInline
@@ -47,17 +55,12 @@ public sealed interface PostEmbedUnion {
     public val `value`: app.bsky.embed.Record,
   ) : PostEmbedUnion
 
-  public class RecordMainSerializer : KSerializer<RecordMain> by valueClassSerializer()
-
-  @Serializable(with = RecordMainSerializer::class)
-  @JvmInline
-  @SerialName("app.bsky.embed.record#main")
-  public value class RecordMain(
-    public val `value`: app.bsky.embed.RecordMain,
-  ) : PostEmbedUnion
-
-
-  public class RecordWithMediaSerializer : KSerializer<RecordWithMedia> by valueClassSerializer()
+  public class RecordWithMediaSerializer : KSerializer<RecordWithMedia> by valueClassSerializer(
+    serialName = "app.bsky.embed.recordWithMedia",
+    constructor = ::RecordWithMedia,
+    valueProvider = RecordWithMedia::value,
+    valueSerializerProvider = { app.bsky.embed.RecordWithMedia.serializer() },
+  )
 
   @Serializable(with = RecordWithMediaSerializer::class)
   @JvmInline
@@ -69,7 +72,12 @@ public sealed interface PostEmbedUnion {
 
 @Serializable
 public sealed interface PostLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer()
+  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
+    serialName = "com.atproto.label.defs#selfLabels",
+    constructor = ::SelfLabels,
+    valueProvider = SelfLabels::value,
+    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
+  )
 
   @Serializable(with = SelfLabelsSerializer::class)
   @JvmInline
@@ -78,7 +86,6 @@ public sealed interface PostLabelsUnion {
     public val `value`: com.atproto.label.SelfLabels,
   ) : PostLabelsUnion
 }
-
 @Serializable
 public data class Post(
   public val text: String,

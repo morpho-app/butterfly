@@ -17,7 +17,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface PostViewEmbedUnion {
-  public class ImagesViewSerializer : KSerializer<ImagesView> by valueClassSerializer()
+  public class ImagesViewSerializer : KSerializer<ImagesView> by valueClassSerializer(
+    serialName = "app.bsky.embed.images#view",
+    constructor = ::ImagesView,
+    valueProvider = ImagesView::value,
+    valueSerializerProvider = { app.bsky.embed.ImagesView.serializer() },
+  )
 
   @Serializable(with = ImagesViewSerializer::class)
   @JvmInline
@@ -26,7 +31,12 @@ public sealed interface PostViewEmbedUnion {
     public val `value`: app.bsky.embed.ImagesView,
   ) : PostViewEmbedUnion
 
-  public class ExternalViewSerializer : KSerializer<ExternalView> by valueClassSerializer()
+  public class ExternalViewSerializer : KSerializer<ExternalView> by valueClassSerializer(
+    serialName = "app.bsky.embed.external#view",
+    constructor = ::ExternalView,
+    valueProvider = ExternalView::value,
+    valueSerializerProvider = { app.bsky.embed.ExternalView.serializer() },
+  )
 
   @Serializable(with = ExternalViewSerializer::class)
   @JvmInline
@@ -35,7 +45,12 @@ public sealed interface PostViewEmbedUnion {
     public val `value`: app.bsky.embed.ExternalView,
   ) : PostViewEmbedUnion
 
-  public class RecordViewSerializer : KSerializer<RecordView> by valueClassSerializer()
+  public class RecordViewSerializer : KSerializer<RecordView> by valueClassSerializer(
+    serialName = "app.bsky.embed.record#view",
+    constructor = ::RecordView,
+    valueProvider = RecordView::value,
+    valueSerializerProvider = { app.bsky.embed.RecordView.serializer() },
+  )
 
   @Serializable(with = RecordViewSerializer::class)
   @JvmInline
@@ -45,7 +60,12 @@ public sealed interface PostViewEmbedUnion {
   ) : PostViewEmbedUnion
 
   public class RecordWithMediaViewSerializer : KSerializer<RecordWithMediaView> by
-      valueClassSerializer()
+  valueClassSerializer(
+    serialName = "app.bsky.embed.recordWithMedia#view",
+    constructor = ::RecordWithMediaView,
+    valueProvider = RecordWithMediaView::value,
+    valueSerializerProvider = { app.bsky.embed.RecordWithMediaView.serializer() },
+  )
 
   @Serializable(with = RecordWithMediaViewSerializer::class)
   @JvmInline

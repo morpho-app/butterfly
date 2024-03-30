@@ -14,7 +14,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface SubscribeLabelsMessageUnion {
-  public class LabelsSerializer : KSerializer<Labels> by valueClassSerializer()
+  public class LabelsSerializer : KSerializer<Labels> by valueClassSerializer(
+    serialName = "com.atproto.label.subscribeLabels#labels",
+    constructor = ::Labels,
+    valueProvider = Labels::value,
+    valueSerializerProvider = { SubscribeLabelsLabels.serializer() },
+  )
 
   @Serializable(with = LabelsSerializer::class)
   @JvmInline
@@ -23,7 +28,12 @@ public sealed interface SubscribeLabelsMessageUnion {
     public val `value`: SubscribeLabelsLabels,
   ) : SubscribeLabelsMessageUnion
 
-  public class InfoSerializer : KSerializer<Info> by valueClassSerializer()
+  public class InfoSerializer : KSerializer<Info> by valueClassSerializer(
+    serialName = "com.atproto.label.subscribeLabels#info",
+    constructor = ::Info,
+    valueProvider = Info::value,
+    valueSerializerProvider = { SubscribeLabelsInfo.serializer() },
+  )
 
   @Serializable(with = InfoSerializer::class)
   @JvmInline
@@ -32,6 +42,7 @@ public sealed interface SubscribeLabelsMessageUnion {
     public val `value`: SubscribeLabelsInfo,
   ) : SubscribeLabelsMessageUnion
 }
+
 
 @Serializable
 public data class SubscribeLabelsQuery(

@@ -15,7 +15,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface GetPostThreadResponseThreadUnion {
-  public class ThreadViewPostSerializer : KSerializer<ThreadViewPost> by valueClassSerializer()
+  public class ThreadViewPostSerializer : KSerializer<ThreadViewPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#threadViewPost",
+    constructor = ::ThreadViewPost,
+    valueProvider = ThreadViewPost::value,
+    valueSerializerProvider = { app.bsky.feed.ThreadViewPost.serializer() },
+  )
 
   @Serializable(with = ThreadViewPostSerializer::class)
   @JvmInline
@@ -24,7 +29,12 @@ public sealed interface GetPostThreadResponseThreadUnion {
     public val `value`: app.bsky.feed.ThreadViewPost,
   ) : GetPostThreadResponseThreadUnion
 
-  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer()
+  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#notFoundPost",
+    constructor = ::NotFoundPost,
+    valueProvider = NotFoundPost::value,
+    valueSerializerProvider = { app.bsky.feed.NotFoundPost.serializer() },
+  )
 
   @Serializable(with = NotFoundPostSerializer::class)
   @JvmInline
@@ -33,7 +43,12 @@ public sealed interface GetPostThreadResponseThreadUnion {
     public val `value`: app.bsky.feed.NotFoundPost,
   ) : GetPostThreadResponseThreadUnion
 
-  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer()
+  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer(
+    serialName = "app.bsky.feed.defs#blockedPost",
+    constructor = ::BlockedPost,
+    valueProvider = BlockedPost::value,
+    valueSerializerProvider = { app.bsky.feed.BlockedPost.serializer() },
+  )
 
   @Serializable(with = BlockedPostSerializer::class)
   @JvmInline
@@ -42,7 +57,6 @@ public sealed interface GetPostThreadResponseThreadUnion {
     public val `value`: app.bsky.feed.BlockedPost,
   ) : GetPostThreadResponseThreadUnion
 }
-
 @Serializable
 public data class GetPostThreadQuery(
   public val uri: AtUri,

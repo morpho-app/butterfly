@@ -1,6 +1,7 @@
 [versions]
-agp = "8.3.0"
-kotlin = "1.9.21"
+agp = "8.2.0"
+kotlin = "1.9.23"
+kotlin-jvm = "1.9.23"
 compose = "1.6.4"
 compose-compiler = "1.5.4"
 compose-material3 = "1.2.1"
@@ -21,6 +22,7 @@ github-kotlin-logging-jvm = "5.1.0"
 kotlinx-abi-plugin = "0.13.2"
 
 [libraries]
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
@@ -42,6 +44,7 @@ koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref =
 koin-core = { module = "io.insert-koin:koin-core" }
 koin-core-coroutines = { module = "io.insert-koin:koin-core-coroutines" }
 koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin-bom" }
 
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 oshai-kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "github-kotlin-logging-jvm" }
@@ -69,6 +72,7 @@ androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
-kspPlugin = { id = "com.google.devtools.ksp", version = "1.9.0-1.0.13"}
+kspPlugin = { id = "com.google.devtools.ksp", version = "1.9.23-1.0.19"}
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 kotlinxAbiPlugin = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "kotlinx-abi-plugin"}
+jetbrainsKotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-jvm" }

@@ -12,9 +12,16 @@ import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.Timestamp
 import com.morpho.butterfly.valueClassSerializer
 
+
+
 @Serializable
 public sealed interface ReportRequestSubject {
-  public class AdminRepoRefSerializer : KSerializer<AdminRepoRef> by valueClassSerializer()
+  public class AdminRepoRefSerializer : KSerializer<AdminRepoRef> by valueClassSerializer(
+    serialName = "com.atproto.admin.defs#repoRef",
+    constructor = ::AdminRepoRef,
+    valueProvider = AdminRepoRef::value,
+    valueSerializerProvider = { RepoRef.serializer() },
+  )
 
   @Serializable(with = AdminRepoRefSerializer::class)
   @JvmInline
@@ -23,7 +30,12 @@ public sealed interface ReportRequestSubject {
     public val `value`: RepoRef,
   ) : ReportRequestSubject
 
-  public class RepoStrongRefSerializer : KSerializer<RepoStrongRef> by valueClassSerializer()
+  public class RepoStrongRefSerializer : KSerializer<RepoStrongRef> by valueClassSerializer(
+    serialName = "com.atproto.repo.strongRef",
+    constructor = ::RepoStrongRef,
+    valueProvider = RepoStrongRef::value,
+    valueSerializerProvider = { StrongRef.serializer() },
+  )
 
   @Serializable(with = RepoStrongRefSerializer::class)
   @JvmInline
@@ -35,7 +47,12 @@ public sealed interface ReportRequestSubject {
 
 @Serializable
 public sealed interface ReportResponseSubject {
-  public class AdminRepoRefSerializer : KSerializer<AdminRepoRef> by valueClassSerializer()
+  public class AdminRepoRefSerializer : KSerializer<AdminRepoRef> by valueClassSerializer(
+    serialName = "com.atproto.admin.defs#repoRef",
+    constructor = ::AdminRepoRef,
+    valueProvider = AdminRepoRef::value,
+    valueSerializerProvider = { RepoRef.serializer() },
+  )
 
   @Serializable(with = AdminRepoRefSerializer::class)
   @JvmInline
@@ -44,7 +61,12 @@ public sealed interface ReportResponseSubject {
     public val `value`: RepoRef,
   ) : ReportResponseSubject
 
-  public class RepoStrongRefSerializer : KSerializer<RepoStrongRef> by valueClassSerializer()
+  public class RepoStrongRefSerializer : KSerializer<RepoStrongRef> by valueClassSerializer(
+    serialName = "com.atproto.repo.strongRef",
+    constructor = ::RepoStrongRef,
+    valueProvider = RepoStrongRef::value,
+    valueSerializerProvider = { StrongRef.serializer() },
+  )
 
   @Serializable(with = RepoStrongRefSerializer::class)
   @JvmInline
@@ -69,4 +91,12 @@ public data class CreateReportResponse(
   public val subject: ReportResponseSubject,
   public val reportedBy: Did,
   public val createdAt: Timestamp,
-)
+) {
+  init {
+    require(reason == null || reason.count() <= 20_000) {
+      "reason.count() must be <= 20_000, but was ${reason?.count()}"
+    }
+  }
+}
+
+

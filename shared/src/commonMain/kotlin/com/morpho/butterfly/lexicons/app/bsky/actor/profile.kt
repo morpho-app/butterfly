@@ -9,8 +9,14 @@ import kotlinx.serialization.json.JsonElement
 import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
+
 public sealed interface ProfileLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer()
+  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
+    serialName = "com.atproto.label.defs#selfLabels",
+    constructor = ::SelfLabels,
+    valueProvider = SelfLabels::value,
+    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
+  )
 
   @Serializable(with = SelfLabelsSerializer::class)
   @JvmInline

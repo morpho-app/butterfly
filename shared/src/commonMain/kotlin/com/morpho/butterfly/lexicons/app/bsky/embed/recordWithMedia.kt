@@ -8,7 +8,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface RecordWithMediaMediaUnion {
-  public class ImagesSerializer : KSerializer<Images> by valueClassSerializer()
+  public class ImagesSerializer : KSerializer<Images> by valueClassSerializer(
+    serialName = "app.bsky.embed.images",
+    constructor = ::Images,
+    valueProvider = Images::value,
+    valueSerializerProvider = { app.bsky.embed.Images.serializer() },
+  )
 
   @Serializable(with = ImagesSerializer::class)
   @JvmInline
@@ -17,7 +22,12 @@ public sealed interface RecordWithMediaMediaUnion {
     public val `value`: app.bsky.embed.Images,
   ) : RecordWithMediaMediaUnion
 
-  public class ExternalSerializer : KSerializer<External> by valueClassSerializer()
+  public class ExternalSerializer : KSerializer<External> by valueClassSerializer(
+    serialName = "app.bsky.embed.external",
+    constructor = ::External,
+    valueProvider = External::value,
+    valueSerializerProvider = { app.bsky.embed.External.serializer() },
+  )
 
   @Serializable(with = ExternalSerializer::class)
   @JvmInline
@@ -26,6 +36,7 @@ public sealed interface RecordWithMediaMediaUnion {
     public val `value`: app.bsky.embed.External,
   ) : RecordWithMediaMediaUnion
 }
+
 
 @Serializable
 public data class RecordWithMedia(

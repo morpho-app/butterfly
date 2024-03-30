@@ -14,7 +14,12 @@ import com.morpho.butterfly.valueClassSerializer
 
 @Serializable
 public sealed interface SubscribeReposMessageUnion {
-  public class CommitSerializer : KSerializer<Commit> by valueClassSerializer()
+  public class CommitSerializer : KSerializer<Commit> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#commit",
+    constructor = ::Commit,
+    valueProvider = Commit::value,
+    valueSerializerProvider = { SubscribeReposCommit.serializer() },
+  )
 
   @Serializable(with = CommitSerializer::class)
   @JvmInline
@@ -23,7 +28,26 @@ public sealed interface SubscribeReposMessageUnion {
     public val `value`: SubscribeReposCommit,
   ) : SubscribeReposMessageUnion
 
-  public class HandleSerializer : KSerializer<Handle> by valueClassSerializer()
+  public class IdentitySerializer : KSerializer<Identity> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#identity",
+    constructor = ::Identity,
+    valueProvider = Identity::value,
+    valueSerializerProvider = { SubscribeReposIdentity.serializer() },
+  )
+
+  @Serializable(with = IdentitySerializer::class)
+  @JvmInline
+  @SerialName("com.atproto.sync.subscribeRepos#identity")
+  public value class Identity(
+    public val `value`: SubscribeReposIdentity,
+  ) : SubscribeReposMessageUnion
+
+  public class HandleSerializer : KSerializer<Handle> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#handle",
+    constructor = ::Handle,
+    valueProvider = Handle::value,
+    valueSerializerProvider = { SubscribeReposHandle.serializer() },
+  )
 
   @Serializable(with = HandleSerializer::class)
   @JvmInline
@@ -32,7 +56,12 @@ public sealed interface SubscribeReposMessageUnion {
     public val `value`: SubscribeReposHandle,
   ) : SubscribeReposMessageUnion
 
-  public class MigrateSerializer : KSerializer<Migrate> by valueClassSerializer()
+  public class MigrateSerializer : KSerializer<Migrate> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#migrate",
+    constructor = ::Migrate,
+    valueProvider = Migrate::value,
+    valueSerializerProvider = { SubscribeReposMigrate.serializer() },
+  )
 
   @Serializable(with = MigrateSerializer::class)
   @JvmInline
@@ -41,7 +70,12 @@ public sealed interface SubscribeReposMessageUnion {
     public val `value`: SubscribeReposMigrate,
   ) : SubscribeReposMessageUnion
 
-  public class TombstoneSerializer : KSerializer<Tombstone> by valueClassSerializer()
+  public class TombstoneSerializer : KSerializer<Tombstone> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#tombstone",
+    constructor = ::Tombstone,
+    valueProvider = Tombstone::value,
+    valueSerializerProvider = { SubscribeReposTombstone.serializer() },
+  )
 
   @Serializable(with = TombstoneSerializer::class)
   @JvmInline
@@ -50,7 +84,12 @@ public sealed interface SubscribeReposMessageUnion {
     public val `value`: SubscribeReposTombstone,
   ) : SubscribeReposMessageUnion
 
-  public class InfoSerializer : KSerializer<Info> by valueClassSerializer()
+  public class InfoSerializer : KSerializer<Info> by valueClassSerializer(
+    serialName = "com.atproto.sync.subscribeRepos#info",
+    constructor = ::Info,
+    valueProvider = Info::value,
+    valueSerializerProvider = { SubscribeReposInfo.serializer() },
+  )
 
   @Serializable(with = InfoSerializer::class)
   @JvmInline
@@ -59,7 +98,6 @@ public sealed interface SubscribeReposMessageUnion {
     public val `value`: SubscribeReposInfo,
   ) : SubscribeReposMessageUnion
 }
-
 @Serializable
 public data class SubscribeReposQuery(
   /**

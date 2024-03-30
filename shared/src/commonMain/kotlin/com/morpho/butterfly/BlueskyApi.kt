@@ -247,30 +247,6 @@ public interface BlueskyApi {
     public suspend fun getLists(params: GetListsQuery): Result<GetListsResponse>
 
     /**
-     * View details about a moderation action.
-     */
-    public suspend fun getModerationAction(params: GetModerationActionQuery):
-            Result<GetModerationActionResponse>
-
-    /**
-     * List moderation actions related to a subject.
-     */
-    public suspend fun getModerationActions(params: GetModerationActionsQuery):
-            Result<GetModerationActionsResponse>
-
-    /**
-     * View details about a moderation report.
-     */
-    public suspend fun getModerationReport(params: GetModerationReportQuery):
-            Result<GetModerationReportResponse>
-
-    /**
-     * List moderation reports related to a subject.
-     */
-    public suspend fun getModerationReports(params: GetModerationReportsQuery):
-            Result<GetModerationReportsResponse>
-
-    /**
      * Who does the viewer mute?
      */
     public suspend fun getMutes(params: GetMutesQuery): Result<GetMutesResponse>
@@ -313,21 +289,12 @@ public interface BlueskyApi {
      */
     public suspend fun getRecord(params: com.atproto.sync.GetRecordQuery): Result<ByteArray>
 
-    /**
-     * View details about a record.
-     */
-    public suspend fun getRecord(params: com.atproto.admin.GetRecordQuery):
-            Result<GetRecordResponse>
 
     /**
      * Gets the did's repo, optionally catching up from a specific revision.
      */
     public suspend fun getRepo(params: GetRepoQuery): Result<ByteArray>
 
-    /**
-     * View details about a repository.
-     */
-    public suspend fun getRepo(params: com.atproto.admin.GetRepoQuery): Result<GetRepoResponse>
 
     public suspend fun getRepostedBy(params: GetRepostedByQuery):
             Result<GetRepostedByResponse>
@@ -474,17 +441,6 @@ public interface BlueskyApi {
     public suspend fun resolveHandle(params: ResolveHandleQuery):
             Result<ResolveHandleResponse>
 
-    /**
-     * Resolve moderation reports by an action.
-     */
-    public suspend fun resolveModerationReports(request: ResolveModerationReportsRequest):
-            Result<ResolveModerationReportsResponse>
-
-    /**
-     * Reverse a moderation action.
-     */
-    public suspend fun reverseModerationAction(request: ReverseModerationActionRequest):
-            Result<ReverseModerationActionResponse>
 
     /**
      * Revoke an app-specific password by name.
@@ -520,10 +476,7 @@ public interface BlueskyApi {
     public suspend fun searchPostsSkeleton(params: SearchPostsSkeletonQuery):
             Result<SearchPostsSkeletonResponse>
 
-    /**
-     * Find repositories based on a search term.
-     */
-    public suspend fun searchRepos(params: SearchReposQuery): Result<SearchReposResponse>
+
 
     /**
      * Send email to a user's primary email address
@@ -542,11 +495,6 @@ public interface BlueskyApi {
     public suspend fun subscribeRepos(params: SubscribeReposQuery):
             Flow<Result<SubscribeReposMessage>>
 
-    /**
-     * Take a moderation action on a repo.
-     */
-    public suspend fun takeModerationAction(request: TakeModerationActionRequest):
-            Result<TakeModerationActionResponse>
 
     /**
      * Unmute an actor by did or handle.
