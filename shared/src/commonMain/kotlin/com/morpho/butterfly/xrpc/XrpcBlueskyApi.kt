@@ -183,12 +183,6 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import kotlinx.coroutines.flow.Flow
 import com.morpho.butterfly.auth.AuthInfo
-import com.morpho.butterfly.response.AtpException
-import com.morpho.butterfly.xrpc.procedure
-import com.morpho.butterfly.xrpc.query
-import com.morpho.butterfly.xrpc.subscription
-import com.morpho.butterfly.xrpc.toAtpResult
-import com.morpho.butterfly.xrpc.withXrpcConfiguration
 import tools.ozone.communication.CreateTemplateRequest
 import tools.ozone.communication.CreateTemplateResponse
 import tools.ozone.communication.ListTemplatesResponse
@@ -482,6 +476,7 @@ public class XrpcBlueskyApi(
     ).toAtpResult()
   }
 
+  @Deprecated("DEPRECATED: use queryLabels or subscribeLabels instead -- Fetch all labels from a labeler created after a certain date.")
   override suspend fun fetchLabels(params: FetchLabelsQueryParams): Result<FetchLabelsResponse> {
     return client.query(
       path = "/xrpc/com.atproto.temp.fetchLabels",
@@ -587,6 +582,7 @@ public class XrpcBlueskyApi(
   /**
    * DEPRECATED - please use com.atproto.sync.getRepo instead
    */
+  @Deprecated("DEPRECATED - please use com.atproto.sync.getRepo instead")
   override suspend fun getCheckout(params: GetCheckoutQuery): Result<ByteArray> {
     return client.query(
       path = "/xrpc/com.atproto.sync.getCheckout",
@@ -671,6 +667,7 @@ public class XrpcBlueskyApi(
   /**
    * DEPRECATED - please use com.atproto.sync.getLatestCommit instead
    */
+  @Deprecated("DEPRECATED - please use com.atproto.sync.getLatestCommit instead")
   override suspend fun getHead(params: GetHeadQuery): Result<GetHeadResponse> {
     return client.query(
       path = "/xrpc/com.atproto.sync.getHead",

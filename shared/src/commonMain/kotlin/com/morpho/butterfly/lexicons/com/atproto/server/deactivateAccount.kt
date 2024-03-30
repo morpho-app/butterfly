@@ -1,7 +1,7 @@
 package com.atproto.server
 
 import kotlinx.serialization.Serializable
-import sh.christian.ozone.api.model.Timestamp
+import com.morpho.butterfly.model.Timestamp
 
 @Serializable
 public data class DeactivateAccountRequest(
