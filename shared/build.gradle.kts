@@ -72,6 +72,8 @@ publishing {
     repositories {
         maven {
             name = "Butterfly"
+            description = "Multiplatform Kotlin library for the AT Protocol and Bluesky"
+            
             url = uri("https://maven.pkg.github.com/morpho-app/butterfly")
             credentials {
                 username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
