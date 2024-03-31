@@ -20,9 +20,11 @@ kotlin {
         }
     }
 
+    jvm("desktop")
+
     // iOS targets stubbed out for now
     // Can't build them on my desktop anyway
-    /*listOf(
+    listOf(
         iosX64(),
         iosArm64(),
         iosSimulatorArm64()
@@ -31,10 +33,12 @@ kotlin {
             baseName = "shared"
             isStatic = true
         }
-    }*/
+    }//*/
 
 
     sourceSets {
+        val desktopMain by getting
+
         commonMain.dependencies {
             implementation(libs.ktor.logging)
             implementation(libs.slf4j.api)
@@ -61,6 +65,9 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+
+        }
+        desktopMain.dependencies {
 
         }
     }
