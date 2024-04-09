@@ -1,5 +1,6 @@
 [versions]
 agp = "8.2.0"
+appdirs = "1.2.2"
 kotlin = "1.9.23"
 kotlin-jvm = "1.9.23"
 compose = "1.6.4"
@@ -22,6 +23,7 @@ github-kotlin-logging-jvm = "5.1.0"
 kotlinx-abi-plugin = "0.13.2"
 
 [libraries]
+appdirs = { module = "net.harawata:appdirs", version.ref = "appdirs" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -45,6 +47,7 @@ koin-core = { module = "io.insert-koin:koin-core" }
 koin-core-coroutines = { module = "io.insert-koin:koin-core-coroutines" }
 koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin-bom" }
+koin-android-compat = { module = "io.insert-koin:koin-android-compat", version.ref = "koin-bom" }
 
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 oshai-kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "github-kotlin-logging-jvm" }
