@@ -68,7 +68,14 @@ kotlin {
 
         }
         desktopMain.dependencies {
+            implementation(libs.appdirs)
+        }
 
+        androidMain.dependencies {
+            // Koin dependency injection
+            implementation(libs.koin.android)
+            // Java Compatibility
+            implementation(libs.koin.android.compat)
         }
     }
 

@@ -1,6 +1,6 @@
 package com.morpho.butterfly
 
-import app.bsky.actor.GetPreferencesResponse
+import app.bsky.actor.PreferencesUnion
 import app.bsky.feed.Like
 import app.bsky.feed.Repost
 import com.atproto.repo.CreateRecordRequest
@@ -9,8 +9,10 @@ import com.atproto.server.CreateSessionRequest
 import com.atproto.server.RefreshSessionResponse
 import com.morpho.butterfly.auth.AuthInfo
 import com.morpho.butterfly.auth.Credentials
-import com.morpho.butterfly.auth.LoginRepository
-import com.morpho.butterfly.auth.RelayRepository
+import com.morpho.butterfly.auth.Server
+import com.morpho.butterfly.auth.SessionRepository
+import com.morpho.butterfly.auth.User
+import com.morpho.butterfly.auth.UserRepository
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
 import com.morpho.butterfly.model.Timestamp
@@ -22,8 +24,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.DEFAULT
@@ -37,24 +39,52 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.encodeToJsonElement
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlin.collections.set
 
 private const val TAG = "butterfly"
 
 
 class Butterfly(
-    private val relay: RelayRepository,
-    private val user: LoginRepository
-) {
+    val id: AtIdentifier? = null
+): KoinComponent {
 
     // TODO: implement this cache in a better way
     private val rkeyCache: MutableMap<AtUri, RkeyCacheEntry> = mutableMapOf()
-    private val authCache = mutableListOf<BearerTokens>()
+    private val authCache = arrayListOf<BearerTokens>()
+
+    val userService: UserRepository by inject()
+    val session: SessionRepository by inject()
+
+    var user: User? = null
+
+    init {
+        runBlocking {
+            if (id != null) {
+                val u = userService.findUser(id)
+                if (u != null) {
+                    user = u
+                    if (u.auth != null) {
+                        authCache.add(u.auth!!.toTokens())
+                    }
+                } else {
+                    user = User(id, Server.BlueskySocial)
+                    userService.addUser(user!!)
+                }
+            }
+        }
+    }
+
 
     var atpClient = HttpClient(CIO) {
+        engine {
+            pipelining = true
+        }
 
         install(Logging) {
             logger = Logger.DEFAULT
@@ -67,46 +97,14 @@ class Butterfly(
         }
 
         defaultRequest {
-            val hostUrl = Url(relay.server.host)
+            val hostUrl = if(user != null) Url(user!!.server.host) else Url(Server.BlueskySocial.host)
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port
         }
 
-
-
         install(Auth) {
-            bearer {
-                loadTokens {
-                    if (user.auth != null) {
-                        authCache.add(user.auth!!.toTokens())
-                        authCache.last()
-                    } else {
-                        BearerTokens("","")
-                    }
-                }
-
-                refreshTokens {
-                    val refresh = user.auth?.refreshJwt
-                    val refreshResponse = client.post("/xrpc/com.atproto.server.refreshSession") {
-                        if (refresh != null) {
-                            bearerAuth(refresh)
-                        }
-                        markAsRefreshTokenRequest()
-                    }.toAtpResult<AuthInfo>().getOrNull()
-                    if (refreshResponse != null) {
-                        user.auth = refreshResponse
-                        authCache.add(refreshResponse.toTokens())
-                        refreshResponse.toTokens()
-                    } else {
-                       BearerTokens("","")
-                    }
-                }
-                sendWithoutRequest {request ->
-                    // figure out how to programmatically detect xrpc api calls that don't need authentication
-                    request.url.toString().contains(relay.server.host)
-                }
-            }
+            authConfig
         }
 
         install(HttpTimeout) {
@@ -115,6 +113,52 @@ class Butterfly(
 
         expectSuccess = false
     }
+
+
+    private val authConfig =
+        BearerAuthProvider(
+            loadTokens = {
+                if (session.auth != null) {
+                    if(id != null){
+                        val auth = userService.getAuth(id)
+                        if (auth != null) {
+                            authCache.add(auth.toTokens())
+                        } else {
+                            authCache.add(session.auth!!.toTokens())
+                        }
+                    } else {
+                        authCache.add(session.auth!!.toTokens())
+                    }
+                    if (id != null) userService.setAuth(id, session.auth!!)
+                    authCache.last()
+                } else {
+                    BearerTokens("","")
+                }
+            },
+
+            refreshTokens = {
+                val refresh = session.auth?.refreshJwt
+                val refreshResponse = client.post("/xrpc/com.atproto.server.refreshSession") {
+                    if (refresh != null) {
+                        bearerAuth(refresh)
+                    }
+                    markAsRefreshTokenRequest()
+                }.toAtpResult<AuthInfo>().getOrNull()
+                if (refreshResponse != null) {
+                    session.auth = refreshResponse
+                    authCache.add(refreshResponse.toTokens())
+                    refreshResponse.toTokens()
+                } else {
+                    BearerTokens("","")
+                }
+            },
+            sendWithoutRequestCallback = {request ->
+                // figure out how to programmatically detect xrpc api calls that don't need authentication
+                user != null && (user?.server?.host?.let { request.url.toString().contains(it) } == true)
+            },
+            realm = "BlueskySocial"
+        )
+
 
     var api: BlueskyApi = XrpcBlueskyApi(atpClient)
 
@@ -133,13 +177,15 @@ class Butterfly(
         }.toAtpResult()
     }
 
-    suspend fun getUserPreferences() : Result<GetPreferencesResponse> {
-        return api.getPreferences()
+    suspend fun getUserPreferences() : Result<List<PreferencesUnion>> {
+        return api.getPreferences().map { it.preferences }
     }
 
 
-    suspend fun makeLoginRequest(credentials: Credentials): Result<AuthInfo> {
+    suspend fun makeLoginRequest(credentials: Credentials, server: Server = Server.BlueskySocial): Result<AuthInfo> {
         return withContext(Dispatchers.IO) {
+            user = User(credentials, server)
+            resetEngine()
             api.createSession(CreateSessionRequest(credentials.username.handle, credentials.password)).map { response ->
                 AuthInfo(
                     accessJwt = response.accessJwt,
@@ -149,18 +195,56 @@ class Butterfly(
                 )
             }
             .onSuccess {
-                user.auth = it
-                user.credentials = credentials
-
+                session.auth = it
+                userService.addUser(credentials, server)
+                userService.setAuth(credentials.username, it)
+                resetEngine()
             }.onFailure {
             }
         }
     }
 
+    private fun resetEngine() {
+        atpClient.close()
+        atpClient = HttpClient(CIO) {
+            engine {
+                pipelining = true
+            }
+
+            install(Logging) {
+                logger = Logger.DEFAULT
+                level = LogLevel.ALL
+            }
+
+            install(HttpCache) {
+                //val cache = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.toFile()
+                //publicStorage(FileStorage(cache))
+            }
+
+            defaultRequest {
+                val hostUrl = if(user != null) Url(user!!.server.host) else Url(Server.BlueskySocial.host)
+                url.protocol = hostUrl.protocol
+                url.host = hostUrl.host
+                url.port = hostUrl.port
+            }
+
+            install(Auth) {
+                authConfig
+            }
+
+            install(HttpTimeout) {
+                requestTimeoutMillis = Long.MAX_VALUE
+            }
+
+            expectSuccess = false
+        }
+        api = XrpcBlueskyApi(atpClient)
+    }
+
     fun createRecord(
         record: RecordUnion
     ) = CoroutineScope(Dispatchers.IO).launch {
-        val did = user.auth?.did
+        val did = session.auth?.did
         val timestamp : Timestamp = Clock.System.now()
         val uri: AtUri
         if (did != null) {
@@ -236,11 +320,10 @@ class Butterfly(
     }
 
     private fun deleteRecord(type: RecordType, rkey: String) = CoroutineScope(Dispatchers.IO).launch {
-        val did = user.auth?.did
+        val did = session.auth?.did
         if (did != null) {
             api.deleteRecord(DeleteRecordRequest(did, type.collection, rkey))
         }
     }
 
 }
-
