@@ -24,6 +24,8 @@ interface UserRepository {
     suspend fun addUser(user: User)
     suspend fun addUsers(users: List<User>)
     suspend fun removeUser(id: AtIdentifier): Boolean
+
+    fun firstUser(): User?
 }
 
 class UserRepositoryImpl(storageDir: String): UserRepository {
@@ -33,6 +35,8 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
     )
     private val _users: List<User>
         get() = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty() }
+
+    override fun firstUser(): User? = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty().firstOrNull() }
 
     override suspend fun findUser(id: AtIdentifier) = coroutineScope {
         async { _users.firstOrNull { it.id == id } }.await()

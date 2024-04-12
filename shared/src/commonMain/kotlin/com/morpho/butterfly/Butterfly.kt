@@ -51,7 +51,7 @@ private const val TAG = "butterfly"
 
 
 class Butterfly(
-    val id: AtIdentifier? = null
+    val id: AtIdentifier?
 ): KoinComponent {
 
     // TODO: implement this cache in a better way

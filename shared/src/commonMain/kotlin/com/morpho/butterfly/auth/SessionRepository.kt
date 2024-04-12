@@ -8,11 +8,10 @@ import okio.Path.Companion.toPath
 
 
 class SessionRepository(
-    val dir: String,
-    val key: String = ""
+    val dir: String
 ) {
     private val authStore: KStore<AuthInfo> = storeOf(
-        file = "$dir/jwt_$key.json".toPath(),
+        file = "$dir/jwt.json".toPath(),
         default = null,
         enableCache = true
     )
@@ -28,8 +27,7 @@ class SessionRepository(
 
     constructor(
         dir: String,
-        key: String = "",
-        auth: AuthInfo,) : this(dir, key) {
+        auth: AuthInfo,) : this(dir) {
             this.auth = auth
         }
 }
