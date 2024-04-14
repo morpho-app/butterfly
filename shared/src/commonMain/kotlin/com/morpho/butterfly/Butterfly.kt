@@ -11,7 +11,7 @@ import com.morpho.butterfly.auth.AuthInfo
 import com.morpho.butterfly.auth.Credentials
 import com.morpho.butterfly.auth.Server
 import com.morpho.butterfly.auth.SessionRepository
-import com.morpho.butterfly.auth.User
+import com.morpho.butterfly.auth.AtpUser
 import com.morpho.butterfly.auth.UserRepository
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
@@ -61,20 +61,20 @@ class Butterfly(
     val userService: UserRepository by inject()
     val session: SessionRepository by inject()
 
-    var user: User? = null
+    var atpUser: AtpUser? = null
 
     init {
         runBlocking {
             if (id != null) {
                 val u = userService.findUser(id)
                 if (u != null) {
-                    user = u
+                    atpUser = u
                     if (u.auth != null) {
                         authCache.add(u.auth!!.toTokens())
                     }
                 } else {
-                    user = User(id, Server.BlueskySocial)
-                    userService.addUser(user!!)
+                    atpUser = AtpUser(id, Server.BlueskySocial)
+                    userService.addUser(atpUser!!)
                 }
             }
         }
@@ -97,7 +97,7 @@ class Butterfly(
         }
 
         defaultRequest {
-            val hostUrl = if(user != null) Url(user!!.server.host) else Url(Server.BlueskySocial.host)
+            val hostUrl = if(atpUser != null) Url(atpUser!!.server.host) else Url(Server.BlueskySocial.host)
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port
@@ -154,7 +154,7 @@ class Butterfly(
             },
             sendWithoutRequestCallback = {request ->
                 // figure out how to programmatically detect xrpc api calls that don't need authentication
-                user != null && (user?.server?.host?.let { request.url.toString().contains(it) } == true)
+                atpUser != null && (atpUser?.server?.host?.let { request.url.toString().contains(it) } == true)
             },
             realm = "BlueskySocial"
         )
@@ -184,7 +184,7 @@ class Butterfly(
 
     suspend fun makeLoginRequest(credentials: Credentials, server: Server = Server.BlueskySocial): Result<AuthInfo> {
         return withContext(Dispatchers.IO) {
-            user = User(credentials, server)
+            atpUser = AtpUser(credentials, server)
             resetEngine()
             api.createSession(CreateSessionRequest(credentials.username.handle, credentials.password)).map { response ->
                 AuthInfo(
@@ -222,7 +222,7 @@ class Butterfly(
             }
 
             defaultRequest {
-                val hostUrl = if(user != null) Url(user!!.server.host) else Url(Server.BlueskySocial.host)
+                val hostUrl = if(atpUser != null) Url(atpUser!!.server.host) else Url(Server.BlueskySocial.host)
                 url.protocol = hostUrl.protocol
                 url.host = hostUrl.host
                 url.port = hostUrl.port

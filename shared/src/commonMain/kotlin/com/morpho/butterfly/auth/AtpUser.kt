@@ -4,7 +4,7 @@ import com.morpho.butterfly.AtIdentifier
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class User(
+data class AtpUser(
     val id: AtIdentifier,
     val server: Server,
 ) {

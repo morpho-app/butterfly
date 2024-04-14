@@ -10,6 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
@@ -17,34 +20,34 @@ import okio.Path.Companion.toPath
 
 
 interface UserRepository {
-    suspend fun findUser(id: AtIdentifier): User?
+    suspend fun findUser(id: AtIdentifier): AtpUser?
     suspend fun setAuth(id: AtIdentifier, auth: AuthInfo): Boolean
     suspend fun getAuth(id: AtIdentifier): AuthInfo?
     suspend fun addUser(credentials: Credentials, server: Server)
-    suspend fun addUser(user: User)
-    suspend fun addUsers(users: List<User>)
+    suspend fun addUser(atpUser: AtpUser)
+    suspend fun addUsers(users: List<AtpUser>)
     suspend fun removeUser(id: AtIdentifier): Boolean
 
-    fun firstUser(): User?
+    fun firstUser(): AtpUser?
 }
 
 class UserRepositoryImpl(storageDir: String): UserRepository {
-    private val _userStore: KStore<List<User>> = listStoreOf(
+    private val _userStore: KStore<List<AtpUser>> = listStoreOf(
         file = "$storageDir/users.json".toPath(),
         enableCache = true
     )
-    private val _users: List<User>
-        get() = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty() }
+    private val _users: Flow<List<AtpUser>?>
+        get() = _userStore.updates.distinctUntilChanged()
 
-    override fun firstUser(): User? = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty().firstOrNull() }
+    override fun firstUser(): AtpUser? = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty().firstOrNull() }
 
     override suspend fun findUser(id: AtIdentifier) = coroutineScope {
-        async { _users.firstOrNull { it.id == id } }.await()
+        async { _users.firstOrNull()?.firstOrNull { it.id == id } }.await()
     }
 
     override suspend fun setAuth(id: AtIdentifier, auth: AuthInfo): Boolean = coroutineScope {
         return@coroutineScope async {
-            val user =_users.firstOrNull { it.id == id }
+            val user =_users.firstOrNull()?.firstOrNull { it.id == id }
             if (user != null) {
                 val update = launch(Dispatchers.IO) {
                     _userStore.minus(user)
@@ -57,17 +60,17 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
     }
 
     override suspend fun getAuth(id: AtIdentifier): AuthInfo? = coroutineScope {
-        async { _users.firstOrNull { it.id == id }?.auth }.await()
+        async { _users.firstOrNull()?.firstOrNull { it.id == id }?.auth }.await()
     }
     override suspend fun addUser(credentials: Credentials, server: Server): Unit = coroutineScope  {
-        launch(Dispatchers.IO) { _userStore.plus(User(credentials, server)) }
+        launch(Dispatchers.IO) { _userStore.plus(AtpUser(credentials, server)) }
     }
 
-    override suspend fun addUser(user: User): Unit = coroutineScope {
-        launch(Dispatchers.IO) { _userStore.plus(user) }
+    override suspend fun addUser(atpUser: AtpUser): Unit = coroutineScope {
+        launch(Dispatchers.IO) { _userStore.plus(atpUser) }
     }
 
-    override suspend fun addUsers(users: List<User>): Unit = coroutineScope  {
+    override suspend fun addUsers(users: List<AtpUser>): Unit = coroutineScope  {
         launch(Dispatchers.IO) {
             users.map { user -> launch { _userStore.plus(user) } }
         }
