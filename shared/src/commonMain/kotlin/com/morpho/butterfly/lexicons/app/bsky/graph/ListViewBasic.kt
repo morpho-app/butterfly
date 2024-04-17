@@ -8,13 +8,13 @@ import com.morpho.butterfly.model.Timestamp
 
 @Serializable
 public data class ListViewBasic(
-  public val uri: AtUri,
-  public val cid: Cid,
-  public val name: String,
-  public val purpose: Token,
-  public val avatar: String? = null,
-  public val viewer: ListViewerState? = null,
-  public val indexedAt: Timestamp? = null,
+    public val uri: AtUri,
+    public val cid: Cid,
+    public val name: String,
+    public val purpose: ListType,
+    public val avatar: String? = null,
+    public val viewer: ListViewerState? = null,
+    public val indexedAt: Timestamp? = null,
 ) {
   init {
     require(name.isNotEmpty()) {

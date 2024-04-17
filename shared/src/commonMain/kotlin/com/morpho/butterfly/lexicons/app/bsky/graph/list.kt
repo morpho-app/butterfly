@@ -31,13 +31,13 @@ public sealed interface ListLabelsUnion {
 
 @Serializable
 public data class List(
-  public val purpose: Token,
-  public val name: String,
-  public val description: String? = null,
-  public val descriptionFacets: ReadOnlyList<Facet> = persistentListOf(),
-  public val avatar: JsonElement? = null,
-  public val labels: ListLabelsUnion? = null,
-  public val createdAt: Timestamp,
+    public val purpose: ListType,
+    public val name: String,
+    public val description: String? = null,
+    public val descriptionFacets: ReadOnlyList<Facet> = persistentListOf(),
+    public val avatar: JsonElement? = null,
+    public val labels: ListLabelsUnion? = null,
+    public val createdAt: Timestamp,
 ) {
   init {
     require(name.isNotEmpty()) {

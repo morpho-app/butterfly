@@ -1,13 +1,11 @@
 package com.atproto.label
 
-import kotlin.Boolean
-import kotlin.String
-import kotlinx.serialization.Serializable
+import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Did
-import com.morpho.butterfly.Uri
 import com.morpho.butterfly.model.Timestamp
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.ByteString
 
 /**
@@ -26,7 +24,7 @@ public data class Label @OptIn(ExperimentalSerializationApi::class) constructor(
   /**
    * AT URI of the record, repository (account), or other resource that this label applies to.
    */
-  public val uri: Uri,
+  public val uri: AtUri,
   /**
    * Optionally, CID specifying the specific version of 'uri' resource this label applies to.
    */
