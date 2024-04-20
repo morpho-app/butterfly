@@ -42,6 +42,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.ktor.logging)
             implementation(libs.slf4j.api)
+            //implementation(libs.slf4j.simple)
             implementation(kotlin("reflect"))
             implementation(libs.okio)
             implementation(libs.ktor.cio)
@@ -62,6 +63,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.core.coroutines)
             implementation(libs.koin.annotations)
+            api(libs.logging)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -69,6 +71,9 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(libs.appdirs)
+            implementation(libs.apache.commons)
+            implementation(libs.logback.core)
+            implementation(libs.logback.classic)
         }
 
         androidMain.dependencies {

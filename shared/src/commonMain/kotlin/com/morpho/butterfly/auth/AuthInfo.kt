@@ -1,7 +1,8 @@
 package com.morpho.butterfly.auth
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.Handle
-import kotlinx.serialization.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class AuthInfo (
@@ -9,5 +10,6 @@ data class AuthInfo (
     val refreshJwt: String,
     val handle: Handle,
     val did: Did,
+    val didDoc: JsonElement? = null,
 )
 

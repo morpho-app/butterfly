@@ -7,12 +7,7 @@ import com.atproto.repo.CreateRecordRequest
 import com.atproto.repo.DeleteRecordRequest
 import com.atproto.server.CreateSessionRequest
 import com.atproto.server.RefreshSessionResponse
-import com.morpho.butterfly.auth.AuthInfo
-import com.morpho.butterfly.auth.Credentials
-import com.morpho.butterfly.auth.Server
-import com.morpho.butterfly.auth.SessionRepository
-import com.morpho.butterfly.auth.AtpUser
-import com.morpho.butterfly.auth.UserRepository
+import com.morpho.butterfly.auth.*
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
 import com.morpho.butterfly.model.Timestamp
@@ -27,6 +22,7 @@ import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.cache.storage.CacheStorage
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
@@ -35,24 +31,19 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.http.Url
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.encodeToJsonElement
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.lighthousegames.logging.logging
 import kotlin.collections.set
 
 private const val TAG = "butterfly"
 
+expect fun getPlatformCache(): CacheStorage
 
-class Butterfly(
-    val id: AtIdentifier?
-): KoinComponent {
+class Butterfly: KoinComponent {
 
     // TODO: implement this cache in a better way
     private val rkeyCache: MutableMap<AtUri, RkeyCacheEntry> = mutableMapOf()
@@ -63,20 +54,40 @@ class Butterfly(
 
     var atpUser: AtpUser? = null
 
+    var id: AtIdentifier? = null
+        private set
+
+    companion object {
+        val log = logging()
+    }
     init {
         runBlocking {
-            if (id != null) {
-                val u = userService.findUser(id)
-                if (u != null) {
-                    atpUser = u
-                    if (u.auth != null) {
-                        authCache.add(u.auth!!.toTokens())
-                    }
-                } else {
-                    atpUser = AtpUser(id, Server.BlueskySocial)
-                    userService.addUser(atpUser!!)
+            val auth = session.auth
+            log.d { "Startup auth:\n$auth" }
+            atpUser = if (auth != null) {
+                // If we have an auth token, we can use that to get the user
+                var maybeUser = userService.findUser(auth.did)
+                log.d { "Maybe user:\n$maybeUser"}
+                if (maybeUser == null) {
+                    maybeUser = userService.findUser(auth.handle)
+                    log.d { "Maybe user:\n$maybeUser"}
                 }
-            }
+                if(maybeUser == null) {
+                    // If we don't have the user, we can create it (make some assumptions if we don't have the server info)
+                    val u = AtpUser(auth.did, Server.BlueskySocial, auth)
+                    userService.addUser(u)
+                    u
+                } else maybeUser
+            } else if(userService.firstUser() != null){
+                userService.firstUser()
+            } else atpUser
+            id = if(atpUser?.auth != null) {
+                atpUser!!.auth?.let { authCache.add(it.toTokens()) }
+                atpUser?.auth?.did
+            } else atpUser?.id
+            log.d { "User:\n${atpUser}" }
+            log.d { "User ID: $id" }
+
         }
     }
 
@@ -92,12 +103,16 @@ class Butterfly(
         }
 
         install(HttpCache) {
-            //val cache = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.toFile()
-            //publicStorage(FileStorage(cache))
+            publicStorage(getPlatformCache())
         }
 
         defaultRequest {
-            val hostUrl = if(atpUser != null) Url(atpUser!!.server.host) else Url(Server.BlueskySocial.host)
+            val hostUrl = if(atpUser != null) {
+                Url(atpUser!!.server.host)
+            } else {
+                Url(Server.BlueskySocial.host)
+            }
+            log.v { "Host URL: $hostUrl"}
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port
@@ -119,19 +134,20 @@ class Butterfly(
         BearerAuthProvider(
             loadTokens = {
                 if (session.auth != null) {
-                    if(id != null){
-                        val auth = userService.getAuth(id)
-                        if (auth != null) {
-                            authCache.add(auth.toTokens())
-                        } else {
-                            authCache.add(session.auth!!.toTokens())
-                        }
+                    val auth = atpUser?.id?.let { userService.getAuth(it) }
+                    if (auth != null) {
+                        authCache.add(auth.toTokens())
                     } else {
                         authCache.add(session.auth!!.toTokens())
                     }
-                    if (id != null) userService.setAuth(id, session.auth!!)
+                    atpUser?.id?.let { userService.setAuth(it, session.auth!!) }
+                    log.d { "Loaded tokens:\n${authCache.last()}" }
+                    authCache.last()
+                } else if(authCache.isNotEmpty()) {
+                    log.d { "Loaded tokens:\n${authCache.last()}" }
                     authCache.last()
                 } else {
+                    log.w { "Loading blank bearer auth" }
                     BearerTokens("","")
                 }
             },
@@ -147,6 +163,8 @@ class Butterfly(
                 if (refreshResponse != null) {
                     session.auth = refreshResponse
                     authCache.add(refreshResponse.toTokens())
+                    atpUser?.id?.let { userService.setAuth(it, refreshResponse) }
+                    log.d { "Refreshed tokens:\n${refreshResponse}" }
                     refreshResponse.toTokens()
                 } else {
                     BearerTokens("","")
@@ -154,7 +172,12 @@ class Butterfly(
             },
             sendWithoutRequestCallback = {request ->
                 // figure out how to programmatically detect xrpc api calls that don't need authentication
-                atpUser != null && (atpUser?.server?.host?.let { request.url.toString().contains(it) } == true)
+                val host = if(atpUser != null) {
+                    atpUser!!.server.host
+                } else {
+                    Server.BlueskySocial.host
+                }
+                request.url.toString().contains(host)
             },
             realm = "BlueskySocial"
         )
@@ -178,7 +201,17 @@ class Butterfly(
     }
 
     suspend fun getUserPreferences() : Result<List<PreferencesUnion>> {
-        return api.getPreferences().map { it.preferences }
+        return api.getPreferences().map { it.preferences }.onSuccess {
+            log.v { it }
+        }
+    }
+
+
+    fun isLoggedIn(): Boolean {
+        log.d { "User:\n${atpUser}" }
+        log.d { "Cache:\n${authCache}"}
+        log.d { "Session:\n${session.auth}" }
+        return !(authCache.isEmpty() || session.auth == null)
     }
 
 
@@ -192,19 +225,26 @@ class Butterfly(
                     refreshJwt = response.refreshJwt,
                     handle = response.handle,
                     did = response.did,
+                    didDoc = response.didDoc
                 )
             }
             .onSuccess {
+                // If the didDoc has a PDS endpoint listed, we can use that instead of the overall server
+                val newServer = if (it.didDoc != null) {
+                    val service = it.didDoc.toString().substringAfterLast("serviceEndPoint").substringBefore('"')
+                    Server.CustomServer(service)
+                } else server
                 session.auth = it
-                userService.addUser(credentials, server)
+                userService.addUser(credentials, newServer)
                 userService.setAuth(credentials.username, it)
+                atpUser = AtpUser(credentials, newServer, it)
                 resetEngine()
-            }.onFailure {
             }
         }
     }
 
     private fun resetEngine() {
+        log.d { "Resetting HTTP engine" }
         atpClient.close()
         atpClient = HttpClient(CIO) {
             engine {
@@ -222,7 +262,12 @@ class Butterfly(
             }
 
             defaultRequest {
-                val hostUrl = if(atpUser != null) Url(atpUser!!.server.host) else Url(Server.BlueskySocial.host)
+                val hostUrl = if(atpUser != null) {
+                    Url(atpUser!!.server.host)
+                } else {
+                    Url(Server.BlueskySocial.host)
+                }
+                log.v { "Host URL: $hostUrl"}
                 url.protocol = hostUrl.protocol
                 url.host = hostUrl.host
                 url.port = hostUrl.port
@@ -276,7 +321,9 @@ class Butterfly(
                     )
                 }
             }
+            log.v {"Record request: $request"}
             val rkey = getRkey(api.createRecord(request).getOrNull()?.uri)
+            log.v {"Rkey for $record: $rkey"}
             when(record) {
                 is RecordUnion.Like -> {
                     if (rkeyCache.containsKey(uri)) {
@@ -322,6 +369,7 @@ class Butterfly(
     private fun deleteRecord(type: RecordType, rkey: String) = CoroutineScope(Dispatchers.IO).launch {
         val did = session.auth?.did
         if (did != null) {
+            log.v { "Deleting record $rkey of type $type" }
             api.deleteRecord(DeleteRecordRequest(did, type.collection, rkey))
         }
     }

@@ -17,8 +17,11 @@ kotlinx-coroutines = "1.8.0"
 kotlinx-immutable = "0.3.7"
 kstore = "0.7.1"
 ktor = "2.3.9"
+logbackClassic = "1.2.9"
+logbackCore = "1.2.9"
+logging = "1.4.2"
 okio = "3.9.0"
-slf4j-api = "2.0.12"
+slf4j-api = "1.7.36"
 github-kotlin-logging-jvm = "5.1.0"
 kotlinx-abi-plugin = "0.13.2"
 
@@ -49,9 +52,14 @@ koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin-bom" }
 koin-android-compat = { module = "io.insert-koin:koin-android-compat", version.ref = "koin-bom" }
 
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
+logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logbackCore" }
+logging = { module = "org.lighthousegames:logging", version.ref = "logging" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 oshai-kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "github-kotlin-logging-jvm" }
 
+apache-commons = { module = "org.apache.commons:commons-lang3", version = "3.13.0" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version = "2.0.9" }
 
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin-reflect" }

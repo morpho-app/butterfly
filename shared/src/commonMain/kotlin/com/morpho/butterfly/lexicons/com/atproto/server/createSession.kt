@@ -1,10 +1,9 @@
 package com.atproto.server
 
-import kotlin.Boolean
-import kotlin.String
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.Handle
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 public data class CreateSessionRequest(
@@ -21,6 +20,7 @@ public data class CreateSessionResponse(
   public val refreshJwt: String,
   public val handle: Handle,
   public val did: Did,
+  public val didDoc: JsonElement? = null,
   public val email: String? = null,
   public val emailConfirmed: Boolean? = null,
 )
