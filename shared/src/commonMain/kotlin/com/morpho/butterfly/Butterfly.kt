@@ -12,6 +12,7 @@ import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
 import com.morpho.butterfly.model.Timestamp
 import com.morpho.butterfly.storage.RkeyCacheEntry
+import com.morpho.butterfly.xrpc.JWTAuthPlugin
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
 import com.morpho.butterfly.xrpc.toAtpResult
 import com.morpho.butterfly.xrpc.withXrpcConfiguration
@@ -19,8 +20,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.cache.storage.CacheStorage
 import io.ktor.client.plugins.defaultRequest
@@ -30,10 +31,14 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
-import io.ktor.http.Url
+import io.ktor.http.takeFrom
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.lighthousegames.logging.logging
@@ -49,8 +54,12 @@ class Butterfly: KoinComponent {
     private val rkeyCache: MutableMap<AtUri, RkeyCacheEntry> = mutableMapOf()
     private val authCache = arrayListOf<BearerTokens>()
 
+
     val userService: UserRepository by inject()
     val session: SessionRepository by inject()
+
+
+    private val sessionTokens = MutableStateFlow(session.auth?.toTokens())
 
     var atpUser: AtpUser? = null
 
@@ -67,10 +76,10 @@ class Butterfly: KoinComponent {
             atpUser = if (auth != null) {
                 // If we have an auth token, we can use that to get the user
                 var maybeUser = userService.findUser(auth.did)
-                log.d { "Maybe user:\n$maybeUser"}
+                log.v { "Maybe user:\n$maybeUser"}
                 if (maybeUser == null) {
                     maybeUser = userService.findUser(auth.handle)
-                    log.d { "Maybe user:\n$maybeUser"}
+                    log.v { "Maybe user:\n$maybeUser"}
                 }
                 if(maybeUser == null) {
                     // If we don't have the user, we can create it (make some assumptions if we don't have the server info)
@@ -85,7 +94,7 @@ class Butterfly: KoinComponent {
                 atpUser!!.auth?.let { authCache.add(it.toTokens()) }
                 atpUser?.auth?.did
             } else atpUser?.id
-            log.d { "User:\n${atpUser}" }
+            log.v { "User:\n${atpUser}" }
             log.d { "User ID: $id" }
 
         }
@@ -94,32 +103,90 @@ class Butterfly: KoinComponent {
 
     var atpClient = HttpClient(CIO) {
         engine {
-            pipelining = true
+            //pipelining = true
         }
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.ALL
+            level = LogLevel.HEADERS
+        }
+
+        install(JWTAuthPlugin) {
+            authTokens = sessionTokens
         }
 
         install(HttpCache) {
-            publicStorage(getPlatformCache())
+            //publicStorage(getPlatformCache())
         }
 
         defaultRequest {
             val hostUrl = if(atpUser != null) {
-                Url(atpUser!!.server.host)
+                runCatching {
+                    log.v { "Custom Host URL: ${atpUser!!.server.host}"}
+                    url.takeFrom(atpUser!!.server.host)
+                }.mapCatching {
+                    it
+                }.getOrThrow()
+
             } else {
-                Url(Server.BlueskySocial.host)
+                url.takeFrom(Server.BlueskySocial.host)
             }
-            log.v { "Host URL: $hostUrl"}
+            log.d { "Host URL: $hostUrl"}
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port
         }
 
         install(Auth) {
-            authConfig
+            bearer {
+                loadTokens {
+                    if (sessionTokens.value != null) {
+                        val auth = atpUser?.id?.let { userService.getAuth(it) }
+                        if (auth != null) {
+                            sessionTokens.value = auth.toTokens()
+                        } else {
+                            sessionTokens.value = session.auth?.toTokens()
+                        }
+                        atpUser?.id?.let { session.auth?.let { it1 -> userService.setAuth(it, it1) } }
+                        log.v { "Loaded tokens:\n${authCache.last()}" }
+                        sessionTokens.value
+                    } else if(authCache.isNotEmpty()) {
+                        log.v { "Loaded tokens:\n${authCache.last()}" }
+                        sessionTokens.value
+                    } else {
+                        log.w { "Loading blank bearer auth" }
+                        BearerTokens("","")
+                    }
+                }
+
+                refreshTokens {
+                    val refresh = session.auth?.refreshJwt
+                    val refreshResponse = client.post("/xrpc/com.atproto.server.refreshSession") {
+                        if (refresh != null) {
+                            bearerAuth(refresh)
+                        }
+                        markAsRefreshTokenRequest()
+                    }.toAtpResult<AuthInfo>().getOrNull()
+                    if (refreshResponse != null) {
+                        session.auth = refreshResponse
+                        sessionTokens.value = refreshResponse.toTokens()
+                        atpUser?.id?.let { userService.setAuth(it, refreshResponse) }
+                        log.d { "Refreshed tokens:\n${refreshResponse}" }
+                        refreshResponse.toTokens()
+                    } else {
+                        BearerTokens("","")
+                    }
+                }
+                sendWithoutRequest  { request ->
+                    // figure out how to programmatically detect xrpc api calls that don't need authentication
+                    val host = if(atpUser != null) {
+                        atpUser!!.server.host
+                    } else {
+                        Server.BlueskySocial.host
+                    }
+                    request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
+                }
+            }
         }
 
         install(HttpTimeout) {
@@ -128,60 +195,6 @@ class Butterfly: KoinComponent {
 
         expectSuccess = false
     }
-
-
-    private val authConfig =
-        BearerAuthProvider(
-            loadTokens = {
-                if (session.auth != null) {
-                    val auth = atpUser?.id?.let { userService.getAuth(it) }
-                    if (auth != null) {
-                        authCache.add(auth.toTokens())
-                    } else {
-                        authCache.add(session.auth!!.toTokens())
-                    }
-                    atpUser?.id?.let { userService.setAuth(it, session.auth!!) }
-                    log.d { "Loaded tokens:\n${authCache.last()}" }
-                    authCache.last()
-                } else if(authCache.isNotEmpty()) {
-                    log.d { "Loaded tokens:\n${authCache.last()}" }
-                    authCache.last()
-                } else {
-                    log.w { "Loading blank bearer auth" }
-                    BearerTokens("","")
-                }
-            },
-
-            refreshTokens = {
-                val refresh = session.auth?.refreshJwt
-                val refreshResponse = client.post("/xrpc/com.atproto.server.refreshSession") {
-                    if (refresh != null) {
-                        bearerAuth(refresh)
-                    }
-                    markAsRefreshTokenRequest()
-                }.toAtpResult<AuthInfo>().getOrNull()
-                if (refreshResponse != null) {
-                    session.auth = refreshResponse
-                    authCache.add(refreshResponse.toTokens())
-                    atpUser?.id?.let { userService.setAuth(it, refreshResponse) }
-                    log.d { "Refreshed tokens:\n${refreshResponse}" }
-                    refreshResponse.toTokens()
-                } else {
-                    BearerTokens("","")
-                }
-            },
-            sendWithoutRequestCallback = {request ->
-                // figure out how to programmatically detect xrpc api calls that don't need authentication
-                val host = if(atpUser != null) {
-                    atpUser!!.server.host
-                } else {
-                    Server.BlueskySocial.host
-                }
-                request.url.toString().contains(host)
-            },
-            realm = "BlueskySocial"
-        )
-
 
     var api: BlueskyApi = XrpcBlueskyApi(atpClient)
 
@@ -196,7 +209,7 @@ class Butterfly: KoinComponent {
     // TODO: Figure out root cause of why that first normal refresh fucks up, wtf did Christian do?
     suspend fun refreshSession(auth: AuthInfo): Result<RefreshSessionResponse> {
         return atpClient.withXrpcConfiguration().post("/xrpc/com.atproto.server.refreshSession") {
-            this.bearerAuth(auth.refreshJwt)
+            bearerAuth(auth.refreshJwt)
         }.toAtpResult()
     }
 
@@ -209,9 +222,9 @@ class Butterfly: KoinComponent {
 
     fun isLoggedIn(): Boolean {
         log.d { "User:\n${atpUser}" }
-        log.d { "Cache:\n${authCache}"}
+        //log.d { "Cache:\n${authCache.lastOrNull()}"}
         log.d { "Session:\n${session.auth}" }
-        return !(authCache.isEmpty() || session.auth == null)
+        return !(atpUser == null ||  authCache.isEmpty() || session.auth == null)
     }
 
 
@@ -231,10 +244,14 @@ class Butterfly: KoinComponent {
             .onSuccess {
                 // If the didDoc has a PDS endpoint listed, we can use that instead of the overall server
                 val newServer = if (it.didDoc != null) {
-                    val service = it.didDoc.toString().substringAfterLast("serviceEndPoint").substringBefore('"')
-                    Server.CustomServer(service)
+                    val service =
+                        it.didDoc.jsonObject["service"]?.jsonArray?.get(0)?.jsonObject?.get("serviceEndpoint")?.jsonPrimitive?.content
+                    if (service != null) {
+                        Server.CustomServer(service)
+                    } else server
                 } else server
                 session.auth = it
+                authCache.add(it.toTokens())
                 userService.addUser(credentials, newServer)
                 userService.setAuth(credentials.username, it)
                 atpUser = AtpUser(credentials, newServer, it)
@@ -248,33 +265,90 @@ class Butterfly: KoinComponent {
         atpClient.close()
         atpClient = HttpClient(CIO) {
             engine {
-                pipelining = true
+                //pipelining = true
             }
 
             install(Logging) {
                 logger = Logger.DEFAULT
-                level = LogLevel.ALL
+                level = LogLevel.HEADERS
+            }
+
+            install(JWTAuthPlugin) {
+                authTokens = sessionTokens
             }
 
             install(HttpCache) {
-                //val cache = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.toFile()
-                //publicStorage(FileStorage(cache))
+                //publicStorage(getPlatformCache())
             }
 
             defaultRequest {
                 val hostUrl = if(atpUser != null) {
-                    Url(atpUser!!.server.host)
+                    runCatching {
+                        log.v { "Custom Host URL: ${atpUser!!.server.host}"}
+                        url.takeFrom(atpUser!!.server.host)
+                    }.mapCatching {
+                        it
+                    }.getOrThrow()
+
                 } else {
-                    Url(Server.BlueskySocial.host)
+                    url.takeFrom(Server.BlueskySocial.host)
                 }
-                log.v { "Host URL: $hostUrl"}
+                log.d { "Host URL: $hostUrl"}
                 url.protocol = hostUrl.protocol
                 url.host = hostUrl.host
                 url.port = hostUrl.port
             }
 
             install(Auth) {
-                authConfig
+                bearer {
+                    loadTokens {
+                        if (sessionTokens.value != null) {
+                            val auth = atpUser?.id?.let { userService.getAuth(it) }
+                            if (auth != null) {
+                                sessionTokens.value = auth.toTokens()
+                            } else {
+                                sessionTokens.value = session.auth?.toTokens()
+                            }
+                            atpUser?.id?.let { session.auth?.let { it1 -> userService.setAuth(it, it1) } }
+                            log.v { "Loaded tokens:\n${authCache.last()}" }
+                            sessionTokens.value
+                        } else if(authCache.isNotEmpty()) {
+                            log.v { "Loaded tokens:\n${authCache.last()}" }
+                            sessionTokens.value
+                        } else {
+                            log.w { "Loading blank bearer auth" }
+                            BearerTokens("","")
+                        }
+                    }
+
+                    refreshTokens {
+                        val refresh = session.auth?.refreshJwt
+                        val refreshResponse = client.post("/xrpc/com.atproto.server.refreshSession") {
+                            if (refresh != null) {
+                                bearerAuth(refresh)
+                            }
+                            markAsRefreshTokenRequest()
+                        }.toAtpResult<AuthInfo>().getOrNull()
+                        if (refreshResponse != null) {
+                            session.auth = refreshResponse
+                            sessionTokens.value = refreshResponse.toTokens()
+                            atpUser?.id?.let { userService.setAuth(it, refreshResponse) }
+                            log.d { "Refreshed tokens:\n${refreshResponse}" }
+                            refreshResponse.toTokens()
+                        } else {
+                            BearerTokens("","")
+                        }
+                    }
+                    sendWithoutRequest  { request ->
+                        // figure out how to programmatically detect xrpc api calls that don't need authentication
+                        val host = if(atpUser != null) {
+                            atpUser!!.server.host
+                        } else {
+                            Server.BlueskySocial.host
+                        }
+                        request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
+                    }
+                }
             }
 
             install(HttpTimeout) {
@@ -304,7 +378,7 @@ class Butterfly: KoinComponent {
                     )
                 }
                 is RecordUnion.MakePost -> {
-                    uri = AtUri("$did/${record.type.collection}/$timestamp")
+                    uri = AtUri(did,record.type.collection,"$timestamp")
                     CreateRecordRequest(
                         repo = did,
                         collection = record.type.collection,

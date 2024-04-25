@@ -22,7 +22,95 @@ value class Uri(
 value class AtUri(
     val atUri: String,
 ) {
+    constructor(
+        id: AtIdentifier,
+        app: Nsid,
+        record: String = "",
+    ) : this("at://${id}/${app}${if (record.isNotEmpty()) "/${record}" else ""}")
     override fun toString(): String = atUri
+
+    val isProfileFeed: Boolean
+        get() = isProfileFeed(this)
+
+    val isProfileContent: Boolean
+        get() = isProfileContent(this)
+
+    companion object {
+        fun isProfileFeed(uri: AtUri): Boolean {
+            return (uri.atUri.matches(ProfilePostsUriRegex) ||
+                    uri.atUri.matches(ProfileRepliesUriRegex) ||
+                    uri.atUri.matches(ProfileMediaUriRegex) ||
+                    uri.atUri.matches(ProfileLikesUriRegex))
+        }
+
+        fun isProfileContent(uri: AtUri): Boolean {
+            return (uri.atUri.matches(ProfilePostsUriRegex) ||
+                    uri.atUri.matches(ProfileRepliesUriRegex) ||
+                    uri.atUri.matches(ProfileMediaUriRegex) ||
+                    uri.atUri.matches(ProfileLikesUriRegex) ||
+                    uri.atUri.matches(ProfileUserListsUriRegex) ||
+                    uri.atUri.matches(ProfileModServiceUriRegex) ||
+                    uri.atUri.matches(ProfileFeedsListUriRegex))
+        }
+        fun profileUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile")
+        }
+        fun profilePostsUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.posts")
+        }
+        fun profileRepliesUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.replies")
+        }
+
+        fun profileMediaUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.media")
+        }
+
+        fun profileLikesUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.likes")
+        }
+
+        fun profileUserListsUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.lists")
+        }
+
+        fun profileModServiceUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.labelServices")
+        }
+
+        fun profileFeedsListUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.profile.feeds")
+        }
+
+        fun followsUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.follows")
+        }
+
+        fun followersUri(id: AtIdentifier): AtUri {
+            return AtUri("at://${id}/app.morpho.followers")
+        }
+
+        fun userListUri(id: AtIdentifier, listId: String): AtUri {
+            return AtUri("at://${id}/app.morpho.list/${listId}")
+        }
+
+        fun myUserListUri(listId: String): AtUri {
+            return AtUri("at://me/app.morpho.list/${listId}")
+        }
+
+        val HOME_URI: AtUri = AtUri("at://app.morpho.home")
+        val MY_PROFILE_URI: AtUri = AtUri("at://me/app.morpho.profile")
+
+        val ProfilePostsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.posts")
+        val ProfileRepliesUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.replies")
+        val ProfileMediaUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.media")
+        val ProfileLikesUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.likes")
+        val ProfileUserListsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.lists")
+        val ProfileModServiceUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.labelService")
+        val ProfileFeedsListUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.feeds")
+        val FollowsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.follows")
+        val FollowersUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.followers")
+    }
 }
 
 /**
@@ -34,6 +122,11 @@ value class AtUri(
 value class Did(
     val did: String,
 ): AtIdentifier {
+
+    constructor(
+        method: String = "plc",
+        id: String,
+    ): this("did:$method:$id")
 
     init {
         require(Regex.matches(did)) {

@@ -32,3 +32,4 @@ fun getRkey(uri: AtUri?) : String {
     val str = uri?.atUri.orEmpty()
     return str.substringAfterLast("/")
 }
+

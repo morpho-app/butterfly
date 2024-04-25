@@ -12,12 +12,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.websocket.Frame
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import morpho.app.api.response.StatusCode
 
@@ -93,6 +88,10 @@ suspend inline fun <reified T : Any> HttpResponse.toAtpResult(): Result<T> {
       } else {
         null
       }
+      if (code == StatusCode.InvalidRequest) {
+
+      }
+
 
       return Result.failure(
         AtpException(code, headers, maybeError)
