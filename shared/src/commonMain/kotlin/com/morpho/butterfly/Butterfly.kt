@@ -108,7 +108,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.HEADERS
+            level = LogLevel.INFO
         }
 
         install(JWTAuthPlugin) {
@@ -131,7 +131,7 @@ class Butterfly: KoinComponent {
             } else {
                 url.takeFrom(Server.BlueskySocial.host)
             }
-            log.d { "Host URL: $hostUrl"}
+            log.v { "Host URL: $hostUrl"}
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port
@@ -270,7 +270,7 @@ class Butterfly: KoinComponent {
 
             install(Logging) {
                 logger = Logger.DEFAULT
-                level = LogLevel.HEADERS
+                level = LogLevel.INFO
             }
 
             install(JWTAuthPlugin) {
@@ -293,7 +293,7 @@ class Butterfly: KoinComponent {
                 } else {
                     url.takeFrom(Server.BlueskySocial.host)
                 }
-                log.d { "Host URL: $hostUrl"}
+                log.v { "Host URL: $hostUrl"}
                 url.protocol = hostUrl.protocol
                 url.host = hostUrl.host
                 url.port = hostUrl.port

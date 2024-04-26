@@ -101,15 +101,15 @@ value class AtUri(
         val HOME_URI: AtUri = AtUri("at://app.morpho.home")
         val MY_PROFILE_URI: AtUri = AtUri("at://me/app.morpho.profile")
 
-        val ProfilePostsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.posts")
-        val ProfileRepliesUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.replies")
-        val ProfileMediaUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.media")
-        val ProfileLikesUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.likes")
-        val ProfileUserListsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.lists")
-        val ProfileModServiceUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.labelService")
-        val ProfileFeedsListUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.profile.feeds")
-        val FollowsUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.follows")
-        val FollowersUriRegex = Regex("at://(me|${Did.Regex.pattern}|${Handle.Regex.pattern})/app.morpho.followers")
+        val ProfilePostsUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.posts")
+        val ProfileRepliesUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.replies")
+        val ProfileMediaUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.media")
+        val ProfileLikesUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.likes")
+        val ProfileUserListsUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.lists")
+        val ProfileModServiceUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.labelService")
+        val ProfileFeedsListUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.feeds")
+        val FollowsUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.follows")
+        val FollowersUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.followers")
     }
 }
 
