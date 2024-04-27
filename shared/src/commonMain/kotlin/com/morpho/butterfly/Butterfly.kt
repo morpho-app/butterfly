@@ -224,7 +224,7 @@ class Butterfly: KoinComponent {
         log.d { "User:\n${atpUser}" }
         //log.d { "Cache:\n${authCache.lastOrNull()}"}
         log.d { "Session:\n${session.auth}" }
-        return !(atpUser == null ||  authCache.isEmpty() || session.auth == null)
+        return (atpUser != null || session.auth != null)
     }
 
 
