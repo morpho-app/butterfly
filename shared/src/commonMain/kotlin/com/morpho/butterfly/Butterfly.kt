@@ -395,9 +395,9 @@ class Butterfly: KoinComponent {
                     )
                 }
             }
-            log.v {"Record request: $request"}
+            log.d {"Record request: $request"}
             val rkey = getRkey(api.createRecord(request).getOrNull()?.uri)
-            log.v {"Rkey for $record: $rkey"}
+            log.d {"Rkey for $record: $rkey"}
             when(record) {
                 is RecordUnion.Like -> {
                     if (rkeyCache.containsKey(uri)) {
