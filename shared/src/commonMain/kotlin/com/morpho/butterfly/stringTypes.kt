@@ -35,7 +35,37 @@ value class AtUri(
     val isProfileContent: Boolean
         get() = isProfileContent(this)
 
+    fun toParts(): Result<UriParts> {
+        return parseAtUri(atUri)
+    }
+
     companion object {
+
+
+        fun parseAtUri(uri: String): Result<UriParts> {
+            return if (uri.startsWith("at://")) {
+                uri.substringAfterLast("at://").split("/").let {
+                    if (Did.Regex.matches(it[0])) Result.success(UriParts(Did(it[0]), Nsid(it[1]), it[2]))
+                    else if(Handle.Regex.matches(it[0])) Result.success(UriParts(Handle(it[0]), Nsid(it[1]), it[2]))
+                    else Result.failure(Error("Invalid identifier: ${it[0]}" ))
+                }
+            } else if (uri.startsWith("https://bsky.app/")) {
+                uri.substringAfter("https://bsky.app/").split("/").let {
+                    val collection = when(it[1]) {
+                        "post" -> {"app.bsky.feed.post"}
+                        "lists" -> {"app.bsky.graph.lists"}
+                        "feed" -> {"app.bsky.feed.generator"}
+                        else -> return Result.failure(Error("Unhandled collection: ${it[1]}"))
+                    }
+                    if (Did.Regex.matches(it[0])) Result.success(UriParts(Did(it[0]), Nsid(collection), it[2]))
+                    else if(Handle.Regex.matches(it[0])) Result.success(UriParts(Handle(it[0]), Nsid(collection), it[2]))
+                    else Result.failure(Error("Invalid identifier: ${it[0]}" ))
+                }
+            } else {
+                return Result.failure(Error("Unhandled URI format: $uri"))
+            }
+        }
+
         fun isProfileFeed(uri: AtUri): Boolean {
             return (uri.atUri.matches(ProfilePostsUriRegex) ||
                     uri.atUri.matches(ProfileRepliesUriRegex) ||
@@ -112,6 +142,14 @@ value class AtUri(
         val FollowersUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.followers")
     }
 }
+
+
+@Serializable
+data class UriParts(
+    val repo: AtIdentifier,
+    val collection: Nsid,
+    val rkey: String,
+)
 
 /**
  * The AT Protocol uses [Decentralized Identifiers](https://atproto.com/specs/did) (DIDs) as persistent, long-term

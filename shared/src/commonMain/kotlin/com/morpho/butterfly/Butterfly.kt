@@ -6,7 +6,6 @@ import app.bsky.feed.Repost
 import com.atproto.repo.CreateRecordRequest
 import com.atproto.repo.DeleteRecordRequest
 import com.atproto.server.CreateSessionRequest
-import com.atproto.server.RefreshSessionResponse
 import com.morpho.butterfly.auth.*
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
@@ -14,14 +13,10 @@ import com.morpho.butterfly.model.Timestamp
 import com.morpho.butterfly.storage.RkeyCacheEntry
 import com.morpho.butterfly.xrpc.JWTAuthPlugin
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
-import com.morpho.butterfly.xrpc.toAtpResult
-import com.morpho.butterfly.xrpc.withXrpcConfiguration
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.cache.storage.CacheStorage
 import io.ktor.client.plugins.defaultRequest
@@ -29,8 +24,6 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.post
 import io.ktor.http.takeFrom
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +36,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.lighthousegames.logging.logging
 import kotlin.collections.set
+import kotlin.time.Duration
 
 private const val TAG = "butterfly"
 
@@ -68,9 +62,12 @@ class Butterfly: KoinComponent {
 
     companion object {
         val log = logging()
+        val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
+    var refreshService: Job? = null
+
     init {
-        runBlocking {
+        serviceScope.launch {
             val auth = session.auth
             log.d { "Startup auth:\n$auth" }
             atpUser = if (auth != null) {
@@ -98,6 +95,7 @@ class Butterfly: KoinComponent {
             log.d { "User ID: $id" }
 
         }
+        refreshService = sessionRefresh()
     }
 
 
@@ -108,7 +106,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.INFO
+            level = LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -136,7 +134,7 @@ class Butterfly: KoinComponent {
             url.host = hostUrl.host
             url.port = hostUrl.port
         }
-
+/*
         install(Auth) {
             bearer {
                 loadTokens {
@@ -177,18 +175,18 @@ class Butterfly: KoinComponent {
                         BearerTokens("","")
                     }
                 }
-                sendWithoutRequest  { request ->
+                //sendWithoutRequest  { request ->
                     // figure out how to programmatically detect xrpc api calls that don't need authentication
-                    val host = if(atpUser != null) {
-                        atpUser!!.server.host
-                    } else {
-                        Server.BlueskySocial.host
-                    }
-                    request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
-                }
+                    //val host = if(atpUser != null) {
+                   //     atpUser!!.server.host
+                    //} else {
+                    //    Server.BlueskySocial.host
+                    //}
+                    //request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
+                //}
             }
         }
-
+*/
         install(HttpTimeout) {
             requestTimeoutMillis = Long.MAX_VALUE
         }
@@ -207,10 +205,38 @@ class Butterfly: KoinComponent {
 
     // Pulled this out of where I stuck it in the API so it doesn't get overwritten
     // TODO: Figure out root cause of why that first normal refresh fucks up, wtf did Christian do?
-    suspend fun refreshSession(auth: AuthInfo): Result<RefreshSessionResponse> {
-        return atpClient.withXrpcConfiguration().post("/xrpc/com.atproto.server.refreshSession") {
-            bearerAuth(auth.refreshJwt)
-        }.toAtpResult()
+    fun sessionRefresh() = serviceScope.launch {
+        while(true) {
+            delay(Duration.parse("1m"))
+            refreshSession()
+            delay(Duration.parse("20m"))
+        }
+    }
+    fun refreshSession() = serviceScope.launch {
+        session.auth?.let { api.refreshSession() }?.onFailure {
+            log.e { "Failed to refresh session: $it" }
+        }?.onSuccess { refreshResponse ->
+            val auth = if(session.auth != null) {
+                session.auth?.copy(
+                    accessJwt = refreshResponse.accessJwt,
+                    refreshJwt = refreshResponse.refreshJwt,
+                    handle = refreshResponse.handle
+                )
+            } else AuthInfo(
+                refreshResponse.accessJwt,
+                refreshResponse.refreshJwt,
+                refreshResponse.handle,
+                refreshResponse.did
+            )
+            session.auth = auth
+            sessionTokens.value = auth?.toTokens()
+            atpUser?.id?.let {
+                if (auth != null) {
+                    userService.setAuth(it, auth)
+                }
+            }
+            log.d { "Refreshed tokens:\n${auth}" }
+        }
     }
 
     suspend fun getUserPreferences() : Result<List<PreferencesUnion>> {
@@ -270,7 +296,7 @@ class Butterfly: KoinComponent {
 
             install(Logging) {
                 logger = Logger.DEFAULT
-                level = LogLevel.INFO
+                level = LogLevel.ALL
             }
 
             install(JWTAuthPlugin) {
@@ -298,7 +324,7 @@ class Butterfly: KoinComponent {
                 url.host = hostUrl.host
                 url.port = hostUrl.port
             }
-
+/*
             install(Auth) {
                 bearer {
                     loadTokens {
@@ -339,18 +365,18 @@ class Butterfly: KoinComponent {
                             BearerTokens("","")
                         }
                     }
-                    sendWithoutRequest  { request ->
+                    //sendWithoutRequest  { request ->
                         // figure out how to programmatically detect xrpc api calls that don't need authentication
-                        val host = if(atpUser != null) {
-                            atpUser!!.server.host
-                        } else {
-                            Server.BlueskySocial.host
-                        }
-                        request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
-                    }
+                        //val host = if(atpUser != null) {
+                        //    atpUser!!.server.host
+                        //} else {
+                        //    Server.BlueskySocial.host
+                        //}
+                        //request.url.toString().contains(host) || request.url.toString().contains(Server.BlueskySocial.host)
+                    //}
                 }
             }
-
+*/
             install(HttpTimeout) {
                 requestTimeoutMillis = Long.MAX_VALUE
             }
@@ -358,6 +384,10 @@ class Butterfly: KoinComponent {
             expectSuccess = false
         }
         api = XrpcBlueskyApi(atpClient)
+        serviceScope.launch {
+            refreshService?.cancelAndJoin()
+            refreshService = sessionRefresh()
+        }
     }
 
     fun createRecord(

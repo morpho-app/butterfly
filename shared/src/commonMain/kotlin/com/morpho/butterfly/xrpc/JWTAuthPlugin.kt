@@ -41,7 +41,9 @@ class JWTAuthPlugin(
             scope: HttpClient,
         ) {
             scope.plugin(HttpSend).intercept { context ->
-                if (!context.headers.contains(Authorization)) {
+                if(context.url.toString().contains("com.atproto.server.refreshSession")) {
+                    plugin.authTokens.value?.refreshToken?.let { context.bearerAuth(it) }
+                } else if (!context.headers.contains(Authorization)) {
                     plugin.authTokens.value?.accessToken?.let { context.bearerAuth(it) }
                 }
 
