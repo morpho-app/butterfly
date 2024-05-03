@@ -52,4 +52,6 @@ public enum class LabelValue {
   NSFL,
   @SerialName("gore")
   GORE,
+  @SerialName("graphic-media")
+  GRAPHIC_MEDIA,
 }

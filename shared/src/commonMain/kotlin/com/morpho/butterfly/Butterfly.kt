@@ -106,7 +106,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.ALL
+            level = LogLevel.INFO
         }
 
         install(JWTAuthPlugin) {
@@ -296,7 +296,7 @@ class Butterfly: KoinComponent {
 
             install(Logging) {
                 logger = Logger.DEFAULT
-                level = LogLevel.ALL
+                level = LogLevel.INFO
             }
 
             install(JWTAuthPlugin) {
