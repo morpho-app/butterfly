@@ -9,34 +9,25 @@ import app.bsky.notification.*
 import app.bsky.unspecced.*
 import com.atproto.admin.*
 import com.atproto.identity.*
-import com.atproto.label.*
-import com.atproto.moderation.*
+import com.atproto.label.QueryLabels
+import com.atproto.label.QueryLabelsResponse
+import com.atproto.label.SubscribeLabelsMessage
+import com.atproto.label.SubscribeLabelsQuery
+import com.atproto.moderation.CreateReportRequest
+import com.atproto.moderation.CreateReportResponse
 import com.atproto.repo.*
 import com.atproto.repo.GetRecordResponse
 import com.atproto.server.*
 import com.atproto.server.DeleteAccountRequest
 import com.atproto.sync.*
 import com.atproto.sync.GetBlocksQuery
-import com.atproto.sync.GetRepoQuery
 import com.atproto.temp.CheckSignupQueueResponse
 import com.atproto.temp.FetchLabelsQueryParams
 import com.atproto.temp.FetchLabelsResponse
-
 import com.morpho.butterfly.auth.AuthInfo
 import kotlinx.coroutines.flow.Flow
-import tools.ozone.communication.CreateTemplateRequest
-import tools.ozone.communication.CreateTemplateResponse
-import tools.ozone.communication.ListTemplatesResponse
-import tools.ozone.communication.UpdateTemplateRequest
-import tools.ozone.communication.UpdateTemplateResponse
-import tools.ozone.moderation.EmitEventRequest
-import tools.ozone.moderation.EmitEventResponse
-import tools.ozone.moderation.GetEventQueryParams
-import tools.ozone.moderation.GetEventResponse
-import tools.ozone.moderation.QueryEventsQueryParams
-import tools.ozone.moderation.QueryEventsResponse
-import tools.ozone.moderation.QueryStatusesQueryParams
-import tools.ozone.moderation.QueryStatusesResponse
+import tools.ozone.communication.*
+import tools.ozone.moderation.*
 
 interface BlueskyApi {
     /**
@@ -264,6 +255,12 @@ interface BlueskyApi {
             Result<GetFollowersResponse>
 
     /**
+     * Who do you follow already who is following an actor?
+     */
+    public suspend fun getKnownFollowers(params: GetKnownFollowersQuery):
+            Result<GetKnownFollowersResponse>
+
+    /**
      * Who is an actor following?
      */
     public suspend fun getFollows(params: GetFollowsQuery): Result<GetFollowsResponse>
@@ -335,6 +332,11 @@ interface BlueskyApi {
      * A view of an actor's feed.
      */
     public suspend fun getPosts(params: GetPostsQuery): Result<GetPostsResponse>
+
+    /**
+     * Get the quotes on a post
+     */
+    public suspend fun getQuotes(params: GetQuotesQuery): Result<GetQuotesResponse>
 
     /**
      * Get private preferences attached to the account.

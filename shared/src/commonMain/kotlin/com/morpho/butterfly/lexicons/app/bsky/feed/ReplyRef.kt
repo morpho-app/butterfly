@@ -1,10 +1,11 @@
 package app.bsky.feed
 
-import kotlin.jvm.JvmInline
+import app.bsky.actor.ProfileViewBasic
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface ReplyRefRootUnion {
@@ -100,4 +101,5 @@ public sealed interface ReplyRefParentUnion {
 public data class ReplyRef(
   public val root: ReplyRefRootUnion,
   public val parent: ReplyRefParentUnion,
+  public val grandparentAuthor: ProfileViewBasic? = null,
 )

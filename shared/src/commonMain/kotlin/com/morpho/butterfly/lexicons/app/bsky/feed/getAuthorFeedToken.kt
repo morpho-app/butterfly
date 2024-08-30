@@ -9,4 +9,6 @@ public enum class GetAuthorFeedFilter(val n: String) {
   POSTS_NO_REPLIES("posts_no_replies"),
   @SerialName("posts_with_media")
   POSTS_WITH_MEDIA("posts_with_media"),
+  @SerialName("posts_and_author_threads")
+  POSTS_AND_AUTHOR_THREADS("posts_and_author_threads"),
 }

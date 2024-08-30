@@ -2,15 +2,13 @@ package app.bsky.feed
 
 import app.bsky.actor.ProfileView
 import app.bsky.richtext.Facet
-import kotlin.Long
-import kotlin.String
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.Serializable
 
 @Serializable
 public data class GeneratorView(
@@ -25,6 +23,7 @@ public data class GeneratorView(
   public val likeCount: Long? = null,
   public val viewer: GeneratorViewerState? = null,
   public val indexedAt: Timestamp,
+  public val acceptsInteractions: Boolean? = null,
 ) {
   init {
     require(description == null || description.count() <= 3_000) {

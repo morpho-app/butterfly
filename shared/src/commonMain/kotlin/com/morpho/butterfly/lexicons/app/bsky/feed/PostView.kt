@@ -2,18 +2,17 @@ package app.bsky.feed
 
 import app.bsky.actor.ProfileViewBasic
 import com.atproto.label.Label
-import kotlin.Long
-import kotlin.jvm.JvmInline
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
 import com.morpho.butterfly.valueClassSerializer
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface PostViewEmbedUnion {
@@ -22,6 +21,20 @@ public sealed interface PostViewEmbedUnion {
     constructor = ::ImagesView,
     valueProvider = ImagesView::value,
     valueSerializerProvider = { app.bsky.embed.ImagesView.serializer() },
+  )
+
+  @Serializable(with = VideoViewSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.embed.video#view")
+  public value class VideoView(
+    public val `value`: app.bsky.embed.VideoView,
+  ) : PostViewEmbedUnion
+
+  public class VideoViewSerializer : KSerializer<VideoView> by valueClassSerializer(
+    serialName = "app.bsky.embed.video#view",
+    constructor = ::VideoView,
+    valueProvider = VideoView::value,
+    valueSerializerProvider = { app.bsky.embed.VideoView.serializer() },
   )
 
   @Serializable(with = ImagesViewSerializer::class)

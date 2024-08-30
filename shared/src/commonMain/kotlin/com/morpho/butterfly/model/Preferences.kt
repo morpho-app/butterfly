@@ -2,10 +2,10 @@ package app.bsky.actor
 
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.valueClassSerializer
 import kotlin.jvm.JvmInline
 
 @Serializable
@@ -67,12 +67,41 @@ public sealed interface PreferencesUnion {
     public val `value`: app.bsky.actor.SavedFeedsPref,
   ) : PreferencesUnion
 
+  public class SavedFeedsPrefV2Serializer : KSerializer<SavedFeedsPrefV2> by valueClassSerializer(
+    serialName = "app.bsky.actor.defs#savedFeedsPrefV2",
+    constructor = ::SavedFeedsPrefV2,
+    valueProvider = SavedFeedsPrefV2::value,
+    valueSerializerProvider = { app.bsky.actor.SavedFeedsPrefV2.serializer() },
+  )
+
+  @Serializable(with = SavedFeedsPrefV2Serializer::class)
+  @JvmInline
+  @SerialName("app.bsky.actor.defs#savedFeedsPrefV2")
+  public value class SavedFeedsPrefV2(
+    public val `value`: app.bsky.actor.SavedFeedsPrefV2,
+  ) : PreferencesUnion
+
   public class PersonalDetailsPrefSerializer : KSerializer<PersonalDetailsPref> by
   valueClassSerializer(
     serialName = "app.bsky.actor.defs#personalDetailsPref",
     constructor = ::PersonalDetailsPref,
     valueProvider = PersonalDetailsPref::value,
     valueSerializerProvider = { app.bsky.actor.PersonalDetailsPref.serializer() },
+  )
+
+  @Serializable(with = BskyAppStatePrefSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.actor.defs#bskyAppStatePref")
+  public value class BskyAppStatePref(
+    public val `value`: app.bsky.actor.BskyAppStatePref,
+  ) : PreferencesUnion
+
+  public class BskyAppStatePrefSerializer : KSerializer<BskyAppStatePref> by
+  valueClassSerializer(
+    serialName = "app.bsky.actor.defs#bskyAppStatePref",
+    constructor = ::BskyAppStatePref,
+    valueProvider = BskyAppStatePref::value,
+    valueSerializerProvider = { app.bsky.actor.BskyAppStatePref.serializer() },
   )
 
   @Serializable(with = PersonalDetailsPrefSerializer::class)
@@ -88,6 +117,7 @@ public sealed interface PreferencesUnion {
     valueProvider = FeedViewPref::value,
     valueSerializerProvider = { app.bsky.actor.FeedViewPref.serializer() },
   )
+
 
   @Serializable(with = FeedViewPrefSerializer::class)
   @JvmInline
@@ -172,4 +202,16 @@ public data class SkyFeedBuilderFeedsPref(
    * List of feeds
    */
   public val feeds: ReadOnlyList<AtUri>,
+)
+
+@Serializable
+public data class BskyAppStatePref(
+  public val activeProgressGuide: BskyAppProgressGuide,
+  public val queuedNudges: ReadOnlyList<String>,
+)
+
+@Serializable
+@SerialName("bskyAppProgressGuide")
+public data class BskyAppProgressGuide(
+  public val guide: String
 )

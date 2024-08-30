@@ -56,7 +56,6 @@ kotlin {
             implementation(libs.ktor.client.resources)
             implementation(libs.ktor.client.auth)
             implementation(libs.kotlin.stdlib)
-
             implementation(libs.kstore)
             implementation(libs.kstore.file)
             implementation(project.dependencies.platform(libs.koin.bom))

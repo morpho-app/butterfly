@@ -1,17 +1,17 @@
 package app.bsky.feed
 
-import kotlin.Any
-import kotlin.Long
-import kotlin.Pair
-import kotlin.String
-import kotlin.jvm.JvmInline
+import app.bsky.graph.ListViewBasic
+import com.morpho.butterfly.AtUri
+import com.morpho.butterfly.Cid
+import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.valueClassSerializer
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.AtUri
-import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
+import kotlinx.serialization.json.JsonElement
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface GetPostThreadResponseThreadUnion {
@@ -88,4 +88,14 @@ public data class GetPostThreadQuery(
 @Serializable
 public data class GetPostThreadResponse(
   public val thread: GetPostThreadResponseThreadUnion,
+  public val threadGate: ThreadGateView? = null,
+)
+
+@Serializable
+@SerialName("threadGateView")
+public data class ThreadGateView(
+  public val uri: AtUri,
+  public val cid: Cid,
+  public val record: JsonElement,
+  public val lists: ReadOnlyList<ListViewBasic>  = persistentListOf(),
 )
