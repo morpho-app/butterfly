@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 public data class VideoView(
     public val video: Blob,
-    public val captions: ReadOnlyList<String>,
+    public val captions: ReadOnlyList<VideoCaption>,
     public val alt: String,
     public val aspectRatio: AspectRatio,
 ) {
@@ -52,7 +52,7 @@ public data class VideoCaption(
 
 @Serializable
 @SerialName("view")
-public data class VideoViewView(
+public data class VideoViewVideo(
     public val cid: Cid,
     public val playlist: AtUri,
     public val thumbnail: AtUri,
