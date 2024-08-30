@@ -1,6 +1,5 @@
 package app.bsky.actor
 
-import com.morpho.butterfly.AtIdentifier
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.serialization.SerialName
@@ -21,7 +20,7 @@ public data class SavedFeedsPrefV2(
 @Serializable
 @SerialName("savedFeed")
 public data class SavedFeed(
-  public val id: AtIdentifier,
+  public val id: String,
   public val type: FeedType,
   public val value: String,
   public val pinned: Boolean,

@@ -3,11 +3,11 @@ package app.bsky.embed
 import app.bsky.feed.GeneratorView
 import app.bsky.graph.ListView
 import app.bsky.labeler.LabelerView
-import kotlin.jvm.JvmInline
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface RecordViewRecordUnion {
@@ -51,6 +51,20 @@ public sealed interface RecordViewRecordUnion {
   @SerialName("app.bsky.embed.record#viewBlocked")
   public value class ViewBlocked(
     public val `value`: RecordViewBlocked,
+  ) : RecordViewRecordUnion
+
+  public class ViewDetachederializer : KSerializer<ViewDetached> by valueClassSerializer(
+    serialName = "app.bsky.embed.record#viewDetached",
+    constructor = ::ViewDetached,
+    valueProvider = ViewDetached::value,
+    valueSerializerProvider = { RecordViewDetached.serializer() },
+  )
+
+  @Serializable(with = ViewDetachederializer::class)
+  @JvmInline
+  @SerialName("app.bsky.embed.record#viewDetached")
+  public value class ViewDetached(
+    public val `value`: RecordViewDetached,
   ) : RecordViewRecordUnion
 
   public class FeedGeneratorViewSerializer : KSerializer<FeedGeneratorView> by valueClassSerializer(
@@ -101,3 +115,4 @@ public sealed interface RecordViewRecordUnion {
 public data class RecordView(
   public val record: RecordViewRecordUnion,
 )
+
