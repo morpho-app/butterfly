@@ -11,13 +11,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 public data class VideoView(
     public val video: Blob,
-    public val captions: ReadOnlyList<VideoCaption>,
-    public val alt: String,
+    public val captions: ReadOnlyList<VideoCaption>? = null,
+    public val alt: String? = null,
     public val aspectRatio: AspectRatio,
 ) {
     init {
-        require(alt.count() <= 10000) {
-            "alt.length must be <= 10000, but was ${alt.length}"
+        require(alt == null || alt.count() <= 10000) {
+            "alt.length must be <= 10000, but was ${alt?.length}"
         }
         when (video) {
             is Blob.StandardBlob -> require(video.mimeType == "video/mp4") {
@@ -56,12 +56,12 @@ public data class VideoViewVideo(
     public val cid: Cid,
     public val playlist: AtUri,
     public val thumbnail: AtUri,
-    public val alt: String,
-    public val aspectRatio: AspectRatio,
+    public val alt: String? = null,
+    public val aspectRatio: AspectRatio? = null,
 ) {
     init {
-        require(alt.count() <= 10000) {
-            "alt.length must be <= 10000, but was ${alt.length}"
+        require(alt == null || alt.count() <= 10000) {
+            "alt.length must be <= 10000, but was ${alt?.length}"
         }
     }
 }
