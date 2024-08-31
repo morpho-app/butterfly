@@ -2,15 +2,15 @@ package app.bsky.actor
 
 import kotlinx.serialization.SerialName
 
-public enum class Visibility {
+public enum class Visibility(val value: String) {
   @SerialName("show")
-  SHOW,
+  SHOW("show"),
   @SerialName("warn")
-  WARN,
+  WARN("warn"),
   @SerialName("hide")
-  HIDE,
+  HIDE("hide"),
   @SerialName("ignore")
-  IGNORE;
+  IGNORE("ignore");
 }
 
 public enum class Sort {

@@ -13,7 +13,7 @@ public data class VideoView(
     public val video: Blob,
     public val captions: ReadOnlyList<VideoCaption>? = null,
     public val alt: String? = null,
-    public val aspectRatio: AspectRatio,
+    public val aspectRatio: AspectRatio? = null,
 ) {
     init {
         require(alt == null || alt.count() <= 10000) {

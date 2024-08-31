@@ -1,7 +1,6 @@
 package app.bsky.actor
 
 import com.morpho.butterfly.Did
-import kotlin.String
 import kotlinx.serialization.Serializable
 
 @Serializable

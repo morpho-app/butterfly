@@ -29,29 +29,29 @@ public enum class DefaultSetting {
   HIDE,
 }
 
-public enum class LabelValue {
+public enum class LabelValue(val value: String) {
   @SerialName("!hide")
-  HIDE,
+  HIDE("!hide"),
   @SerialName("!no-promote")
-  NO_PROMOTE,
+  NO_PROMOTE("!no-promote"),
   @SerialName("!warn")
-  WARN,
+  WARN("!warn"),
   @SerialName("!no-unauthenticated")
-  NO_UNAUTHENTICATED,
+  NO_UNAUTHENTICATED("!no-unauthenticated"),
   @SerialName("dmca-violation")
-  DMCA_VIOLATION,
+  DMCA_VIOLATION("dmca-violation"),
   @SerialName("doxxing")
-  DOXXING,
+  DOXXING("doxxing"),
   @SerialName("porn")
-  PORN,
+  PORN("porn"),
   @SerialName("sexual")
-  SEXUAL,
+  SEXUAL("sexual"),
   @SerialName("nudity")
-  NUDITY,
+  NUDITY("nudity"),
   @SerialName("nsfl")
-  NSFL,
+  NSFL("nsfl"),
   @SerialName("gore")
-  GORE,
+  GORE("gore"),
   @SerialName("graphic-media")
-  GRAPHIC_MEDIA,
+  GRAPHIC_MEDIA("graphic-media"),
 }
