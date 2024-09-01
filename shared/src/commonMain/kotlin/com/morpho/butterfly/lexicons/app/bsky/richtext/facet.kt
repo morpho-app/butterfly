@@ -1,10 +1,10 @@
 package app.bsky.richtext
 
+import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
 import kotlin.jvm.JvmInline
 
 @Serializable
@@ -75,6 +75,19 @@ public sealed interface FacetFeatureUnion {
   @SerialName("blue.poll.post.facet#question")
   public value class PollBlueQuestion(
     public val `value`: PollBlueOptionFacet,
+  ) : FacetFeatureUnion
+
+  public class BlueMojiFacetSerializer : KSerializer<BlueMojiFacet> by valueClassSerializer(
+    serialName = "blue.moji.richtext.facet",
+    constructor = ::BlueMojiFacet,
+    valueProvider = BlueMojiFacet::value,
+    valueSerializerProvider = { BlueMoji.serializer() },
+  )
+  @Serializable(with = BlueMojiFacetSerializer::class)
+  @JvmInline
+  @SerialName("blue.moji.richtext.facet")
+  public value class BlueMojiFacet(
+    public val `value`: BlueMoji,
   ) : FacetFeatureUnion
 }
 

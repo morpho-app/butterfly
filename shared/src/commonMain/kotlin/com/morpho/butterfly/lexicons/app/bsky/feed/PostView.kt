@@ -58,10 +58,6 @@ public sealed interface PostViewEmbedUnion {
     public val `value`: app.bsky.embed.VideoViewVideo,
   ) : PostViewEmbedUnion
 
-
-
-
-
   public class ExternalViewSerializer : KSerializer<ExternalView> by valueClassSerializer(
     serialName = "app.bsky.embed.external#view",
     constructor = ::ExternalView,
