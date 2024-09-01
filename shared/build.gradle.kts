@@ -62,6 +62,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.core.coroutines)
             implementation(libs.koin.annotations)
+
             api(libs.logging)
         }
         commonTest.dependencies {

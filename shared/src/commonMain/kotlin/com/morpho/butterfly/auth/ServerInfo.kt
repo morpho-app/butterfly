@@ -1,10 +1,10 @@
 package com.morpho.butterfly.auth
 
-import kotlinx.collections.immutable.ImmutableList
+import com.morpho.butterfly.model.ReadOnlyList
 
 data class ServerInfo(
     val inviteCodeRequired: Boolean,
-    val availableUserDomains: ImmutableList<String>,
+    val availableUserDomains: ReadOnlyList<String>,
     val privacyPolicy: String?,
     val termsOfService: String?,
 )

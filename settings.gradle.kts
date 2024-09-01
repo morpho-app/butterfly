@@ -1,17 +1,19 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 pluginManagement {
     repositories {
+        mavenCentral()
         google()
         gradlePluginPortal()
-        mavenCentral()
+        maven("https://plugins.gradle.org/m2/")
     }
 }
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositories {
-        google()
         mavenCentral()
+        google()
+        maven("https://plugins.gradle.org/m2/")
     }
 }
 
