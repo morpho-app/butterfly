@@ -215,6 +215,7 @@ class Butterfly: KoinComponent {
     fun refreshSession() = serviceScope.launch {
         session.auth?.let { api.refreshSession() }?.onFailure {
             log.e { "Failed to refresh session: $it" }
+            refreshFailed = true
         }?.onSuccess { refreshResponse ->
             val auth = if(session.auth != null) {
                 session.auth?.copy(
@@ -245,12 +246,13 @@ class Butterfly: KoinComponent {
         }
     }
 
+    private var refreshFailed = false
 
     fun isLoggedIn(): Boolean {
         log.d { "User:\n${atpUser}" }
         //log.d { "Cache:\n${authCache.lastOrNull()}"}
         log.d { "Session:\n${session.auth}" }
-        return (atpUser != null || session.auth != null)
+        return ((atpUser != null || session.auth != null) && !refreshFailed)
     }
 
 
