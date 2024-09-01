@@ -1,5 +1,6 @@
 package app.bsky.richtext
 
+import com.atproto.label.SelfLabels
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Did
 import kotlinx.serialization.SerialName
@@ -30,6 +31,9 @@ public data class BlueMoji(
   public val did: Did,
   public val formats: BlueMojiFormatUnion,
   public val name: String,
+  public val alt: String? = null,
+  public val adultOnly: Boolean? = false,
+  public val labels: SelfLabels? = null,
 )
 
 @Serializable
