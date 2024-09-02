@@ -48,6 +48,7 @@ public data class Label @OptIn(ExperimentalSerializationApi::class) constructor(
   /**
    * Signature of dag-cbor encoded label.
    */
+  @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
   @ByteString
   public val sig: ByteArray? = null,
 ) {

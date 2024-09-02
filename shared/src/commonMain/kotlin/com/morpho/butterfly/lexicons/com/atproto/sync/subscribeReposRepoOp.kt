@@ -1,8 +1,6 @@
 package com.atproto.sync
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlin.ByteArray
-import kotlin.String
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.ByteString
 
@@ -14,6 +12,7 @@ import kotlinx.serialization.cbor.ByteString
 public data class SubscribeReposRepoOp @OptIn(ExperimentalSerializationApi::class) constructor(
   val action: SubscribeReposAction,
   val path: String,
+  @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
   @ByteString
   val cid: ByteArray? = null,
 ) {
