@@ -106,7 +106,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.INFO
+            level = LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -428,7 +428,8 @@ class Butterfly: KoinComponent {
                 }
             }
             log.d {"Record request: $request"}
-            val rkey = getRkey(api.createRecord(request).getOrNull()?.uri)
+            val resp = api.createRecord(request).onFailure { log.e { "Failed to create record: $it" } }
+            val rkey = getRkey(resp.getOrNull()?.uri)
             log.d {"Rkey for $record: $rkey"}
             when(record) {
                 is RecordUnion.Like -> {

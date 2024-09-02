@@ -722,6 +722,6 @@ interface BlueskyApi {
     /**
      * Upload a new blob to be added to repo in a later request.
      */
-    public suspend fun uploadBlob(request: ByteArray): Result<UploadBlobResponse>
+    public suspend fun uploadBlob(request: ByteArray, mimeType: String): Result<UploadBlobResponse>
 }
 

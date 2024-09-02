@@ -27,6 +27,10 @@ public data class PollBlueOptionFacet(
 )
 
 @Serializable
+public data object PollBlueQuestionFacet
+
+
+@Serializable
 public data class BlueMoji(
   public val did: Did,
   public val formats: BlueMojiFormatUnion,

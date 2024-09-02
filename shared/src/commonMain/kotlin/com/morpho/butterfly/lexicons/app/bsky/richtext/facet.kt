@@ -68,13 +68,13 @@ public sealed interface FacetFeatureUnion {
     serialName = "blue.poll.post.facet#question",
     constructor = ::PollBlueQuestion,
     valueProvider = PollBlueQuestion::value,
-    valueSerializerProvider = { PollBlueOptionFacet.serializer() },
+    valueSerializerProvider = { PollBlueQuestionFacet.serializer() },
   )
   @Serializable(with = PollBlueQuestionFacetSerializer::class)
   @JvmInline
   @SerialName("blue.poll.post.facet#question")
   public value class PollBlueQuestion(
-    public val `value`: PollBlueOptionFacet,
+    public val `value`: PollBlueQuestionFacet,
   ) : FacetFeatureUnion
 
   public class BlueMojiFacetSerializer : KSerializer<BlueMojiFacet> by valueClassSerializer(

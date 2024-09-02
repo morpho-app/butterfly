@@ -1,9 +1,6 @@
 package com.morpho.butterfly.model
 
-import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import kotlinx.serialization.cbor.ByteString
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
@@ -19,12 +16,17 @@ sealed interface Blob {
         @ByteString val ref: BlobRef,
         val mimeType: String,
         val size: Long,
+        @SerialName("\$type")
+        @EncodeDefault(EncodeDefault.Mode.ALWAYS) public val type: String = "blob",
     ) : Blob
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
     data class LegacyBlob(
         val cid: String,
         val mimeType: String,
+        @SerialName("\$type")
+        @EncodeDefault(EncodeDefault.Mode.ALWAYS) public val type: String = "blob",
     ) : Blob
 }
 

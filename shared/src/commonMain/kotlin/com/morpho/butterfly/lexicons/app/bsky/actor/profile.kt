@@ -1,12 +1,13 @@
 package app.bsky.actor
 
-import kotlin.String
-import kotlin.jvm.JvmInline
+import com.atproto.repo.StrongRef
+import com.morpho.butterfly.model.Timestamp
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 
@@ -33,6 +34,8 @@ public data class Profile(
   public val avatar: JsonElement? = null,
   public val banner: JsonElement? = null,
   public val labels: ProfileLabelsUnion? = null,
+  public val joinedViaStarterPack: StrongRef? = null,
+  public val createdAt: Timestamp? = null,
 ) {
   init {
     require(displayName == null || displayName.count() <= 640) {

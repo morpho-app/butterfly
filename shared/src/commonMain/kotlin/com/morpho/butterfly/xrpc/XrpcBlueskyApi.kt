@@ -1379,11 +1379,11 @@ public class XrpcBlueskyApi(
   /**
    * Upload a new blob to be added to repo in a later request.
    */
-  override suspend fun uploadBlob(request: ByteArray): Result<UploadBlobResponse> {
+  override suspend fun uploadBlob(request: ByteArray, mimeType: String): Result<UploadBlobResponse> {
     return client.procedure(
       path = "/xrpc/com.atproto.repo.uploadBlob",
       body = request,
-      encoding = "*/*",
+      encoding = mimeType,
     ).toAtpResult()
   }
 }

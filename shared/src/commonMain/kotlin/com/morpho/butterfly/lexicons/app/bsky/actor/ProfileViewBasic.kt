@@ -1,12 +1,12 @@
 package app.bsky.actor
 
 import com.atproto.label.Label
-import kotlin.String
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.Handle
 import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.model.Timestamp
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.Serializable
 
 @Serializable
 public data class ProfileViewBasic(
@@ -17,6 +17,7 @@ public data class ProfileViewBasic(
   public val viewer: ViewerState? = null,
   public val associated: ProfileAssociated? = null,
   public val labels: ReadOnlyList<Label> = persistentListOf(),
+  public val createdAt: Timestamp? = null // Datetime
 ) {
   init {
     require(displayName == null || displayName.count() <= 640) {
@@ -24,3 +25,4 @@ public data class ProfileViewBasic(
     }
   }
 }
+
