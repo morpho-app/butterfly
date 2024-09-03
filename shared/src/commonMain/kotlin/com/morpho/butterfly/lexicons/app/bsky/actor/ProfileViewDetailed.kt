@@ -1,9 +1,9 @@
 package app.bsky.actor
 
+import app.bsky.graph.StarterPackViewBasic
 import com.atproto.label.Label
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.Handle
-import com.morpho.butterfly.lexicons.app.bsky.graph.StarterPackViewBasic
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
 import kotlinx.collections.immutable.persistentListOf

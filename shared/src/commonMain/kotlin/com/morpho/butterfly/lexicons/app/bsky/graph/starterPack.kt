@@ -1,8 +1,6 @@
-package com.morpho.butterfly.lexicons.app.bsky.graph
+package app.bsky.graph
 
 import app.bsky.actor.ProfileViewBasic
-import app.bsky.graph.ListItemView
-import app.bsky.graph.ListViewBasic
 import app.bsky.richtext.Facet
 import com.atproto.label.Label
 import com.morpho.butterfly.AtUri

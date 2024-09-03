@@ -95,6 +95,34 @@ public sealed interface RecordViewRecordUnion {
     public val `value`: ListView,
   ) : RecordViewRecordUnion
 
+  public class StarterPackViewSerializer : KSerializer<StarterPackView> by valueClassSerializer(
+    serialName = "app.bsky.graph.defs#starterPackView",
+    constructor = ::StarterPackView,
+    valueProvider = StarterPackView::value,
+    valueSerializerProvider = { app.bsky.graph.StarterPackView.serializer() },
+  )
+
+  @Serializable(with = StarterPackViewSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.graph.defs#starterPackView")
+  public value class StarterPackView(
+    public val `value`: app.bsky.graph.StarterPackView,
+  ) : RecordViewRecordUnion
+
+  public class StarterPackViewBasicSerializer : KSerializer<StarterPackViewBasic> by valueClassSerializer(
+    serialName = "app.bsky.graph.defs#starterPackViewBasic",
+    constructor = ::StarterPackViewBasic,
+    valueProvider = StarterPackViewBasic::value,
+    valueSerializerProvider = { app.bsky.graph.StarterPackViewBasic.serializer() },
+  )
+
+  @Serializable(with = StarterPackViewBasicSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.graph.defs#starterPackViewBasic")
+  public value class StarterPackViewBasic(
+    public val `value`: app.bsky.graph.StarterPackViewBasic,
+  ) : RecordViewRecordUnion
+
   public class LabelerLabelerViewSerializer : KSerializer<LabelerLabelerView> by
   valueClassSerializer(
     serialName = "app.bsky.labeler.defs#labelerView",
