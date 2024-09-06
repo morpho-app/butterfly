@@ -106,7 +106,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.INFO
+            level = LogLevel.INFO //LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -259,7 +259,7 @@ class Butterfly: KoinComponent {
     suspend fun makeLoginRequest(credentials: Credentials, server: Server = Server.BlueskySocial): Result<AuthInfo> {
         return withContext(Dispatchers.IO) {
             atpUser = AtpUser(credentials, server)
-            resetEngine()
+            //resetEngine()
             api.createSession(CreateSessionRequest(credentials.username.handle, credentials.password)).map { response ->
                 AuthInfo(
                     accessJwt = response.accessJwt,
@@ -279,11 +279,13 @@ class Butterfly: KoinComponent {
                     } else server
                 } else server
                 session.auth = it
+                id = it.did
                 authCache.add(it.toTokens())
+                sessionTokens.value = it.toTokens()
                 userService.addUser(credentials, newServer)
                 userService.setAuth(credentials.username, it)
                 atpUser = AtpUser(credentials, newServer, it)
-                resetEngine()
+                //resetEngine()
             }
         }
     }

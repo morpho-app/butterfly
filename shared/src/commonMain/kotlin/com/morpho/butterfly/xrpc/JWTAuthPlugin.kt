@@ -15,6 +15,7 @@ import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.http.HttpStatusCode.Companion.BadRequest
+import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.json.Json
@@ -48,9 +49,10 @@ class JWTAuthPlugin(
                 }
 
                 var result: HttpClientCall = execute(context)
-                if (result.response.status != BadRequest) {
+                if (result.response.status != BadRequest && result.response.status != Unauthorized) {
                     return@intercept result
                 }
+
 
                 // Cache the response in memory since we will need to decode it potentially more than once.
                 result = result.save()

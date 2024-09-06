@@ -83,15 +83,10 @@ suspend inline fun <reified T : Any> HttpResponse.toAtpResult(): Result<T> {
     is StatusCode.Failure -> {
       val maybeBody = runCatching<T> { body() }.getOrNull()
       val maybeError = if (maybeBody == null) {
-
         kotlin.runCatching<AtpError> { body() }.getOrNull()
       } else {
         null
       }
-      if (code == StatusCode.InvalidRequest) {
-
-      }
-
 
       return Result.failure(
         AtpException(code, headers, maybeError)
