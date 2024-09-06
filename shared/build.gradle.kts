@@ -63,6 +63,7 @@ kotlin {
             implementation(libs.koin.core.coroutines)
             implementation(libs.koin.annotations)
 
+
             api(libs.logging)
         }
         commonTest.dependencies {
@@ -74,13 +75,19 @@ kotlin {
             implementation(libs.apache.commons)
             implementation(libs.logback.core)
             implementation(libs.logback.classic)
+            implementation(libs.kjwt)
         }
 
+        nativeMain.dependencies {
+
+        }
         androidMain.dependencies {
             // Koin dependency injection
             implementation(libs.koin.android)
             // Java Compatibility
             implementation(libs.koin.android.compat)
+
+            implementation(libs.kjwt)
         }
     }
 

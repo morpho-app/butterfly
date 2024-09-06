@@ -1,7 +1,7 @@
 package com.morpho.butterfly.xrpc
 
 import com.atproto.server.RefreshSessionResponse
-import com.morpho.butterfly.response.AtpException
+import com.morpho.butterfly.response.AtpError
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.call.body
@@ -57,13 +57,13 @@ class JWTAuthPlugin(
                 // Cache the response in memory since we will need to decode it potentially more than once.
                 result = result.save()
 
-                val response = runCatching<AtpException> {
+                val response = runCatching<AtpError> {
                     plugin.json.decodeFromString(result.response.bodyAsText())
                 }
 
-                if (response.getOrNull()?.error?.error == "ExpiredToken") {
+                if (response.getOrNull()?.error?.contains("ExpiredToken") == true) {
                     val refreshResponse = scope.post("/xrpc/com.atproto.server.refreshSession") {
-                        plugin.authTokens.value?.refreshToken?.let { bearerAuth(it) }
+                        this.bearerAuth(plugin.authTokens.value?.refreshToken ?: "")
                     }
                     runCatching { refreshResponse.body<RefreshSessionResponse>() }.getOrNull()?.let { refreshed ->
                         val newAccessToken = refreshed.accessJwt
