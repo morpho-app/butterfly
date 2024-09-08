@@ -1,8 +1,10 @@
 package com.morpho.butterfly
 
-import app.bsky.actor.PreferencesUnion
 import app.bsky.feed.Like
 import app.bsky.feed.Repost
+import app.bsky.graph.Block
+import app.bsky.graph.Follow
+import app.bsky.graph.Listblock
 import com.atproto.repo.CreateRecordRequest
 import com.atproto.repo.DeleteRecordRequest
 import com.atproto.server.CreateSessionRequest
@@ -10,7 +12,6 @@ import com.morpho.butterfly.auth.*
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
 import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.storage.RkeyCacheEntry
 import com.morpho.butterfly.xrpc.JWTAuthPlugin
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
 import io.ktor.client.HttpClient
@@ -36,7 +37,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.lighthousegames.logging.logging
-import kotlin.collections.set
 import kotlin.time.Duration
 
 private const val TAG = "butterfly"
@@ -45,8 +45,7 @@ expect fun getPlatformCache(): CacheStorage
 
 class Butterfly: KoinComponent {
 
-    // TODO: implement this cache in a better way
-    private val rkeyCache: MutableMap<AtUri, RkeyCacheEntry> = mutableMapOf()
+
     private val authCache = arrayListOf<BearerTokens>()
 
 
@@ -143,7 +142,7 @@ class Butterfly: KoinComponent {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = Long.MAX_VALUE
+            requestTimeoutMillis = Long.MAX_VALUE // TODO: make this configurable
         }
 
         expectSuccess = false
@@ -194,18 +193,33 @@ class Butterfly: KoinComponent {
         }
     }
 
-    suspend fun getUserPreferences() : Result<List<PreferencesUnion>> {
-        return api.getPreferences().map { it.preferences }.onSuccess {
-            log.v { it }
-        }
-    }
-
     private var refreshFailed = false
 
     fun isLoggedIn(): Boolean {
         log.d { "User:\n${atpUser}" }
         log.d { "Session:\n${session.auth}" }
         return ((atpUser != null || session.auth != null) && !refreshFailed)
+    }
+
+    suspend fun switchUser(id: AtIdentifier) {
+        sessionTokens.value?.let { tokens ->
+            session.auth?.withTokens(tokens)?.let { userService.setAuth(id, it) } }
+        atpUser = userService.findUser(id)
+        session.auth = atpUser?.auth
+        api.getSession().onSuccess {
+            log.d { "New session:\n$it" }
+            val newServer = if (it.didDoc != null) {
+                val service =
+                    it.didDoc.jsonObject["service"]?.jsonArray?.get(0)?.jsonObject?.get("serviceEndpoint")?.jsonPrimitive?.content
+                if (service != null) {
+                    Server.CustomServer(service)
+                } else atpUser?.server ?: Server.BlueskySocial
+            } else atpUser?.server ?: Server.BlueskySocial
+            atpUser = atpUser?.copy(server = newServer)
+        }.onFailure {
+            log.e { "Failed to get session: $it" }
+            refreshFailed = true
+        }
     }
 
 
@@ -245,78 +259,80 @@ class Butterfly: KoinComponent {
     ) = CoroutineScope(Dispatchers.IO).launch {
         val did = session.auth?.did
         val timestamp : Timestamp = Clock.System.now()
-        val uri: AtUri
         if (did != null) {
             val request = when(record) {
                 is RecordUnion.Like -> {
-                    uri = record.subject.uri
                     val like = Like(record.subject, timestamp)
                     CreateRecordRequest(
                         repo = did,
+                        //rkey = rkey,
                         collection = record.type.collection,
                         record = json.encodeToJsonElement(value = like)
                     )
                 }
                 is RecordUnion.MakePost -> {
-                    uri = AtUri(did,record.type.collection,"$timestamp")
                     CreateRecordRequest(
                         repo = did,
+                        //rkey = rkey,
                         collection = record.type.collection,
                         record = json.encodeToJsonElement(value = record.post)
                     )
                 }
                 is RecordUnion.Repost -> {
-                    uri = record.subject.uri
                     val repost = Repost(record.subject, timestamp)
                     CreateRecordRequest(
                         repo = did,
+                        //rkey = rkey,
                         collection = record.type.collection,
                         record = json.encodeToJsonElement(value = repost)
+                    )
+                }
+
+                is RecordUnion.Block -> {
+                    val block = Block(record.subject, timestamp)
+                    CreateRecordRequest(
+                        repo = did,
+                        //rkey = rkey,
+                        collection = record.type.collection,
+                        record = json.encodeToJsonElement(value = block)
+                    )
+                }
+                is RecordUnion.Follow -> {
+                    val follow = Follow(record.subject, timestamp)
+                    CreateRecordRequest(
+                        repo = did,
+                        //rkey = rkey,
+                        collection = record.type.collection,
+                        record = json.encodeToJsonElement(value = follow)
+                    )
+                }
+
+                is RecordUnion.ListBlock -> {
+                    val listBlock = Listblock(record.subject, timestamp)
+                    CreateRecordRequest(
+                        repo = did,
+                        //rkey = rkey,
+                        collection = record.type.collection,
+                        record = json.encodeToJsonElement(value = listBlock)
                     )
                 }
             }
             log.d {"Record request: $request"}
             val resp = api.createRecord(request).onFailure { log.e { "Failed to create record: $it" } }
-            val rkey = getRkey(resp.getOrNull()?.uri)
-            log.d {"Rkey for $record: $rkey"}
-            when(record) {
-                is RecordUnion.Like -> {
-                    if (rkeyCache.containsKey(uri)) {
-                        rkeyCache[uri]?.likeKey = rkey
-                    } else {
-                        rkeyCache[uri] = RkeyCacheEntry(likeKey = rkey)
-                    }
-                }
-                is RecordUnion.MakePost -> {
-                    if (rkeyCache.containsKey(uri)) {
-                        rkeyCache[uri]?.postKey = rkey
-                    } else {
-                        rkeyCache[uri] = RkeyCacheEntry(postKey = rkey)
-                    }
-                }
-                is RecordUnion.Repost -> if (rkeyCache.containsKey(uri)) {
-                    rkeyCache[uri]?.repostKey = rkey
-                } else {
-                    rkeyCache[uri] = RkeyCacheEntry(repostKey = rkey)
-                }
-            }
+            val uri = resp.getOrNull()?.uri ?: return@launch
+            val rkey = getRkey(uri)
+            log.d { "Rkey for $record: $rkey" }
+
         }
     }
-    fun deleteRecord(type: RecordType, uri: AtUri?) {
+    fun deleteRecord(type: RecordType, uri: AtUri?, rkey: String? = null) {
         if (uri != null) {
             // If this is the right kind of uri for the record, we can use the last bit as the rkey
-            val rkey = if(uri.atUri.contains(type.collection.nsid)) {
+            val searchRkey = if(uri.atUri.contains(type.collection.nsid) && rkey == null) {
                 getRkey(uri)
-            } else {
-                // Otherwise, we check our cache for it
-                when(type) {
-                    RecordType.Post -> rkeyCache[uri]?.postKey
-                    RecordType.Like -> rkeyCache[uri]?.likeKey
-                    RecordType.Repost -> rkeyCache[uri]?.repostKey
-                }
-            }
-            if (rkey != null) {
-                deleteRecord(type, rkey)
+            } else rkey
+            if (searchRkey != null) {
+                deleteRecord(type, searchRkey)
             }
         }
     }

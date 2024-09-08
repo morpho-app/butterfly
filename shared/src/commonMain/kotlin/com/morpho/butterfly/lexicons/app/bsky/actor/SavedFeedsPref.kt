@@ -2,6 +2,7 @@ package app.bsky.actor
 
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.model.TID
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,8 +25,12 @@ public data class SavedFeed(
   public val type: FeedType,
   public val value: String,
   public val pinned: Boolean,
-)
+) {
+  constructor( type: FeedType, value: String, pinned: Boolean = false) : this(
+    id = TID.next().toString(), type = type, value = value, pinned = pinned)
+}
 
+@Serializable
 public enum class FeedType {
   @SerialName("feed")
   FEED,
@@ -34,3 +39,4 @@ public enum class FeedType {
   @SerialName("timeline")
   TIMELINE,
 }
+

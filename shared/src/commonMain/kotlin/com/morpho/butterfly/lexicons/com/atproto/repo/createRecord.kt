@@ -1,11 +1,11 @@
 package com.atproto.repo
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import com.morpho.butterfly.AtIdentifier
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Nsid
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 public data class CreateRecordRequest(
@@ -36,7 +36,7 @@ public data class CreateRecordRequest(
 ) {
   init {
     require(rkey == null || rkey.count() <= 15) {
-      "rkey.count() must be <= 15, but was ${rkey?.count()}"
+      "rkey.count() must be <= 15, but was ${rkey?.count()} in ${rkey.toString()}"
     }
   }
 }

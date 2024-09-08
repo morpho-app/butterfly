@@ -1,10 +1,10 @@
 package app.bsky.embed
 
-import kotlin.jvm.JvmInline
+import com.morpho.butterfly.valueClassSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface RecordWithMediaMediaUnion {
@@ -35,6 +35,36 @@ public sealed interface RecordWithMediaMediaUnion {
   public value class External(
     public val `value`: app.bsky.embed.External,
   ) : RecordWithMediaMediaUnion
+
+
+
+  public class VideoViewVideoSerializer : KSerializer<VideoViewVideo> by valueClassSerializer(
+    serialName = "app.bsky.embed.video#view",
+    constructor = ::VideoViewVideo,
+    valueProvider = VideoViewVideo::value,
+    valueSerializerProvider = { app.bsky.embed.VideoViewVideo.serializer() },
+  )
+
+  @Serializable(with = VideoViewVideoSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.embed.video#view")
+  public value class VideoViewVideo(
+    public val `value`: app.bsky.embed.VideoViewVideo,
+  ) : RecordWithMediaMediaUnion
+
+  @Serializable(with = VideoViewSerializer::class)
+  @JvmInline
+  @SerialName("app.bsky.embed.video")
+  public value class VideoView(
+    public val `value`: app.bsky.embed.VideoView,
+  ) : RecordWithMediaMediaUnion
+
+  public class VideoViewSerializer : KSerializer<VideoView> by valueClassSerializer(
+    serialName = "app.bsky.embed.video",
+    constructor = ::VideoView,
+    valueProvider = VideoView::value,
+    valueSerializerProvider = { app.bsky.embed.VideoView.serializer() },
+  )
 }
 
 
