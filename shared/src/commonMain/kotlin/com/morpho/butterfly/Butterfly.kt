@@ -126,16 +126,13 @@ class Butterfly: KoinComponent {
         defaultRequest {
             val hostUrl = if(atpUser != null) {
                 runCatching {
-                    log.v { "Custom Host URL: ${atpUser!!.server.host}"}
                     url.takeFrom(atpUser!!.server.host)
                 }.mapCatching {
                     it
                 }.getOrThrow()
-
             } else {
                 url.takeFrom(Server.BlueskySocial.host)
             }
-            log.v { "Host URL: $hostUrl"}
             url.protocol = hostUrl.protocol
             url.host = hostUrl.host
             url.port = hostUrl.port

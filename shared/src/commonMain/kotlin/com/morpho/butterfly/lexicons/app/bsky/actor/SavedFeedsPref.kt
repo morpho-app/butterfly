@@ -18,6 +18,7 @@ public data class SavedFeedsPrefV2(
   public val items: ReadOnlyList<SavedFeed>,
 )
 
+
 @Serializable
 @SerialName("savedFeed")
 public data class SavedFeed(
