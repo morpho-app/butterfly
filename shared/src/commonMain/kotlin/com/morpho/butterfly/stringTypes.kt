@@ -124,6 +124,10 @@ value class AtUri(
             return AtUri("at://${id}/app.morpho.list/${listId}")
         }
 
+        fun listFeedUri(id: AtIdentifier, listId: String): AtUri {
+            return AtUri("at://${id}/app.bsky.graph.list/${listId}")
+        }
+
         fun myUserListUri(listId: String): AtUri {
             return AtUri("at://me/app.morpho.list/${listId}")
         }
@@ -138,6 +142,7 @@ value class AtUri(
         val ProfileUserListsUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.lists")
         val ProfileModServiceUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.labelService")
         val ProfileFeedsListUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.profile.feeds")
+        val ListFeedUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.bsky.graph.list/([a-zA-Z0-9]{64})")
         val FollowsUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.follows")
         val FollowersUriRegex = Regex("at://(me|${Did.Regex}|${Handle.Regex})/app.morpho.followers")
     }
