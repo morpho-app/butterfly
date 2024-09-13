@@ -63,48 +63,6 @@ class Butterfly: KoinComponent {
     }
     private var refreshService: Job? = null
 
-    init {
-        serviceScope.launch {
-            val auth = session.auth
-            val decoded = auth?.let { decodeJwt(it.accessJwt) }
-            if (decoded?.expiresAt != null && decoded.expiresAt < Clock.System.now()) {
-                val refreshDecoded = decodeJwt(auth.refreshJwt)
-                if (refreshDecoded?.expiresAt != null && refreshDecoded.expiresAt < Clock.System.now()) {
-                    log.d { "Refresh token expired at ${refreshDecoded.expiresAt}" }
-                    log.d { "Kicking to login screen" }
-                    return@launch   // If the refresh token is expired, we can't refresh
-                } else {
-                    log.d { "Access token expired at ${decoded.expiresAt}" }
-                    log.d { "Refreshing..." }
-                    refreshSession()
-                }
-            }
-            log.d { "Startup auth:\n$auth" }
-            atpUser = if (auth != null) {
-                // If we have an auth token, we can use that to get the user
-                var maybeUser = userService.findUser(auth.did)
-                log.v { "Maybe user:\n$maybeUser"}
-                if (maybeUser == null) {
-                    maybeUser = userService.findUser(auth.handle)
-                    log.v { "Maybe user:\n$maybeUser"}
-                }
-                if(maybeUser == null) {
-                    // If we don't have the user, we can create it (make some assumptions if we don't have the server info)
-                    val u = AtpUser(auth.did, Server.BlueskySocial, auth)
-                    userService.addUser(u)
-                    u
-                } else maybeUser
-            } else if(userService.firstUser() != null){
-                userService.firstUser()
-            } else atpUser
-            log.v { "User:\n${atpUser}" }
-            log.d { "User ID: ${atpUser?.id}" }
-
-        }
-        refreshService = sessionRefresh()
-    }
-
-
     private var atpClient = HttpClient(CIO) {
         engine {
             pipelining = false
@@ -112,7 +70,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.INFO //LogLevel.ALL
+            level = LogLevel.ALL //LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -145,6 +103,7 @@ class Butterfly: KoinComponent {
         expectSuccess = false
     }
 
+
     var api: BlueskyApi = XrpcBlueskyApi(atpClient)
 
     private fun AuthInfo.toTokens() = BearerTokens(accessJwt, refreshJwt)
@@ -153,6 +112,57 @@ class Butterfly: KoinComponent {
         accessJwt = tokens.accessToken,
         refreshJwt = tokens.refreshToken,
     )
+
+    init {
+        serviceScope.launch {
+            val auth = session.auth
+            val decoded = auth?.let { decodeJwt(it.accessJwt) }
+            log.d { "Decoded auth: $decoded" }
+            log.d { "Time: ${Clock.System.now()}" }
+            log.d { "Expiry: ${decoded?.expiresAt}" }
+            if (decoded?.expiresAt != null && decoded.expiresAt < Clock.System.now()) {
+                val refreshDecoded = decodeJwt(auth.refreshJwt)
+                log.d { "Refresh decoded: $refreshDecoded" }
+                log.d { "Refresh expiry: ${refreshDecoded?.expiresAt}" }
+                if (refreshDecoded?.expiresAt != null && refreshDecoded.expiresAt < Clock.System.now()) {
+                    log.d { "Refresh token expired at ${refreshDecoded.expiresAt}" }
+                    log.d { "Kicking to login screen" }
+                    refreshFailed = true
+                    return@launch   // If the refresh token is expired, we can't refresh
+                }
+                log.d { "Access token expired at ${decoded.expiresAt}" }
+                log.d { "Refreshing..." }
+
+                refreshSession()
+            }
+            log.d { "Startup auth:\n$auth" }
+            atpUser = if (auth != null) {
+                // If we have an auth token, we can use that to get the user
+                var maybeUser = userService.findUser(auth.did)
+                log.v { "Maybe user:\n$maybeUser"}
+                if (maybeUser == null) {
+                    maybeUser = userService.findUser(auth.handle)
+                    log.v { "Maybe user:\n$maybeUser"}
+                }
+                if(maybeUser == null) {
+                    // If we don't have the user, we can create it (make some assumptions if we don't have the server info)
+                    val u = AtpUser(auth.did, Server.BlueskySocial, auth)
+                    userService.addUser(u)
+                    u
+                } else maybeUser
+            } else if(userService.firstUser() != null){
+                userService.firstUser()
+            } else atpUser
+            log.v { "User:\n${atpUser}" }
+            log.d { "User ID: ${atpUser?.id}" }
+
+        }
+        refreshService = sessionRefresh()
+    }
+
+
+
+
 
 
     private fun sessionRefresh() = serviceScope.launch {
@@ -247,6 +257,7 @@ class Butterfly: KoinComponent {
                 userService.addUser(credentials, newServer)
                 userService.setAuth(credentials.username, it)
                 atpUser = AtpUser(credentials, newServer, it)
+                refreshService = sessionRefresh()
             }
         }
     }

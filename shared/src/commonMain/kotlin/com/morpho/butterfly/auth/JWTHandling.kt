@@ -11,11 +11,9 @@ public data class DecodedJWT(
     val issuer: String?,
     val audience: String?,
     val expiresAt: Instant?,
-    val notBefore: Instant?,
     val issuedAt: Instant?,
     val jwtId: String?,
     val scope: String?,
-    val claims: Map<String, String> = emptyMap(),
 )
 
 

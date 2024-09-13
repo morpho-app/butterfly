@@ -5,6 +5,8 @@ import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Language
 import com.morpho.butterfly.model.Blob
 import com.morpho.butterfly.model.ReadOnlyList
+import dev.icerock.moko.parcelize.Parcelable
+import dev.icerock.moko.parcelize.Parcelize
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -31,12 +33,13 @@ public data class VideoView(
     }
 }
 
+@Parcelize
 @Serializable
 @SerialName("caption")
 public data class VideoCaption(
     public val lang: Language,
     public val file: Blob
-) {
+): Parcelable {
     init {
         when (file) {
             is Blob.StandardBlob -> require(file.mimeType == "text/vtt") {
@@ -50,6 +53,7 @@ public data class VideoCaption(
     }
 }
 
+@Parcelize
 @Serializable
 @SerialName("view")
 public data class VideoViewVideo(
@@ -58,7 +62,7 @@ public data class VideoViewVideo(
     public val thumbnail: AtUri,
     public val alt: String? = null,
     public val aspectRatio: AspectRatio? = null,
-) {
+): Parcelable {
     init {
         require(alt == null || alt.count() <= 10000) {
             "alt.length must be <= 10000, but was ${alt?.length}"

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kspPlugin)
     alias(libs.plugins.kotlinxAbiPlugin)
     id("maven-publish")
+    id("kotlin-parcelize")
 }
 
 group = "com.morpho"
@@ -63,8 +64,16 @@ kotlin {
             implementation(libs.koin.core.coroutines)
             implementation(libs.koin.annotations)
 
+            implementation("com.russhwolf:multiplatform-settings:1.2.0")
+            implementation("com.russhwolf:multiplatform-settings-serialization:1.2.0")
+            implementation("com.russhwolf:multiplatform-settings-coroutines:1.2.0")
+            implementation("com.russhwolf:multiplatform-settings-datastore:1.2.0")
+            implementation("com.russhwolf:multiplatform-settings-no-arg:1.2.0")
+            implementation("androidx.datastore:datastore-preferences-core:1.1.1")
+            implementation("androidx.datastore:datastore-core:1.1.1")
 
             api(libs.logging)
+            api("dev.icerock.moko:parcelize:0.9.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -75,7 +84,7 @@ kotlin {
             implementation(libs.apache.commons)
             implementation(libs.logback.core)
             implementation(libs.logback.classic)
-            implementation(libs.kjwt)
+            implementation(libs.jwt)
         }
 
         nativeMain.dependencies {
@@ -87,7 +96,7 @@ kotlin {
             // Java Compatibility
             implementation(libs.koin.android.compat)
 
-            implementation(libs.kjwt)
+            implementation(libs.jwt)
         }
     }
 

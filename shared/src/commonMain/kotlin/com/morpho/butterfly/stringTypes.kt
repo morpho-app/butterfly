@@ -1,13 +1,16 @@
 package com.morpho.butterfly
 
+import dev.icerock.moko.parcelize.Parcelable
+import dev.icerock.moko.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
+@Parcelize
 @Serializable
 @JvmInline
 value class Uri(
     val uri: String,
-) {
+): Parcelable {
     override fun toString(): String = uri
 }
 
@@ -17,11 +20,12 @@ value class Uri(
  * in a specific repository, identified by either [Did] or [Handle]. AT URIs can also be used to reference a collection
  * within a repository, or an entire repository (aka, an identity).
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class AtUri(
     val atUri: String,
-) {
+): Parcelable {
     constructor(
         id: AtIdentifier,
         app: Nsid,
@@ -148,23 +152,24 @@ value class AtUri(
     }
 }
 
-
+@Parcelize
 @Serializable
 data class UriParts(
     val repo: AtIdentifier,
     val collection: Nsid,
     val rkey: String,
-)
+): Parcelable
 
 /**
  * The AT Protocol uses [Decentralized Identifiers](https://atproto.com/specs/did) (DIDs) as persistent, long-term
  * account identifiers. DID is a W3C standard, with many standardized and proposed DID method implementations.
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class Did(
     val did: String,
-): AtIdentifier {
+): AtIdentifier, Parcelable {
 
     constructor(
         method: String = "plc",
@@ -189,11 +194,12 @@ value class Did(
  * every handle must be a valid network hostname. Almost every valid "hostname" is also a valid handle, though there are
  * a small number of exceptions.
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class Handle(
     val handle: String,
-): AtIdentifier {
+): AtIdentifier, Parcelable {
     init {
         require(Regex.matches(handle)) {
             "'$handle' is not a valid handle."
@@ -211,8 +217,9 @@ value class Handle(
  * an AtIdentifier is a handle or a DID because a DID always starts with `did:`, and the colon character (`:`) is not
  * an allowed in handles.
  */
+@Parcelize
 @Serializable(with = AtIdentifierSerializer::class)
-sealed interface AtIdentifier
+sealed interface AtIdentifier: Parcelable
 
 /**
  * [Namespaced Identifiers](https://atproto.com/specs/nsid) (NSIDs) are used to reference Lexicon schemas for records,
@@ -220,11 +227,12 @@ sealed interface AtIdentifier
  * Domain-Name Order, followed by a simple name. The hostname part is the domain authority, and the final segment is the
  * name.
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class Nsid(
     val nsid: String,
-) {
+): Parcelable {
     init {
         require(Regex.matches(nsid)) {
             "'$nsid' is not a valid namespace identifier."
@@ -252,11 +260,12 @@ value class Nsid(
  * which have both binary and string representations. CIDs include a metadata code which indicates whether it links to a
  * node (DAG-CBOR) or arbitrary binary data.
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class Cid(
     val cid: String,
-) {
+): Parcelable {
     override fun toString(): String = cid
 }
 
@@ -267,19 +276,20 @@ value class Cid(
  * standards. The Lexicon string must validate as a "well-formed" language tag, as defined in the RFC. Clients should
  * ignore language strings which are "well-formed" but not "valid" according to the RFC.
  */
+@Parcelize
 @Serializable
 @JvmInline
 value class Language(
     val tag: String,
-) {
+): Parcelable {
     override fun toString(): String = tag
 }
-
+@Parcelize
 @JvmInline
 @Serializable
 public value class MutedWordTarget(
     val mutedWordTarget: String
-) {
+): Parcelable {
     override fun toString(): String = mutedWordTarget
 }
 
