@@ -13,285 +13,33 @@ import app.bsky.notification.ListNotificationsQuery
 import app.bsky.notification.UpdateSeenRequest
 import com.atproto.identity.ResolveHandleQuery
 import com.atproto.identity.UpdateHandleRequest
-import com.atproto.label.*
 import com.atproto.moderation.CreateReportRequest
 import com.atproto.moderation.CreateReportResponse
 import com.atproto.moderation.ReportRequestSubject
 import com.atproto.repo.*
-import com.atproto.server.CreateSessionRequest
-import com.morpho.butterfly.auth.*
-import com.morpho.butterfly.model.Blob
-import com.morpho.butterfly.model.RecordType
-import com.morpho.butterfly.model.RecordUnion
-import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.xrpc.JWTAuthPlugin
-import com.morpho.butterfly.xrpc.XrpcBlueskyApi
-import dev.icerock.moko.parcelize.Parcelable
-import dev.icerock.moko.parcelize.Parcelize
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.cache.HttpCache
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.DEFAULT
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
-import io.ktor.http.takeFrom
-import kotlinx.collections.immutable.PersistentMap
+import com.morpho.butterfly.model.*
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
-import kotlinx.serialization.*
-import kotlinx.serialization.cbor.ByteString
-import kotlinx.serialization.json.*
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.lighthousegames.logging.logging
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.collections.List
-import kotlin.time.Duration
 
-enum class TokenStatus {
-    Valid,
-    AccessExpired,
-    RefreshExpired,
-    RefreshFailed,
-    NoAuth,
-}
 
-class ButterflyAgent: KoinComponent {
-    val userData: UserRepository by inject()
-    val session: SessionRepository by inject()
-
-    companion object {
-        val log = logging()
-        val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    }
-
-    private var refreshService: Job? = null
-
-    var id: Did? = null
-        get() = session.auth?.did
+class ButterflyAgent: AtpAgent() {
+    var prefs: BskyPreferences = BskyPreferences()
         private set
 
-    val server: Server
-        get() = userData.getUser(id)?.server ?: Server.BlueskySocial
+    var labelers: List<Did> = emptyList()
+        private set
 
-    private val auth: AuthInfo?
-        get() =  session.auth ?: userData.getUser(id)?.auth ?: userData.firstUser()?.auth
+    val appLabelers: List<Did> = listOf(BSKY_LABELER_DID)
 
-    private suspend fun setAuth(auth: AuthInfo?) {
-        session.auth = auth
-        if(auth != null) {
-            id = auth.did
-            userData.setAuth(id!!, auth)
-            sessionTokens.update { auth.toTokens() }
-        } else if(id != null) {
-            userData.setAuth(id!!, null)
-            sessionTokens.update { null }
-        } else {
-            session.auth = null
-            sessionTokens.update { null }
-        }
-    }
-
-    val isLoggedIn: Boolean
-        get() = auth != null
-
-    private val sessionTokens = MutableStateFlow(
-        if(checkTokens(auth) == TokenStatus.Valid) auth?.toTokens()
-        else if(userData.getUser(id) != null
-            && checkTokens(userData.getUser(id)?.auth) == TokenStatus.Valid)
-            userData.getUser(id)?.auth?.toTokens()
-        else if(userData.firstUser() != null
-            && checkTokens(userData.firstUser()?.auth) == TokenStatus.Valid)
-            userData.firstUser()?.auth?.toTokens()
-        else null
-    )
-
-    private fun AuthInfo.toTokens() = BearerTokens(accessJwt, refreshJwt)
-
-    private fun AuthInfo.withTokens(tokens: BearerTokens) = copy(
-        accessJwt = tokens.accessToken,
-        refreshJwt = tokens.refreshToken,
-    )
-
-    private var atpClient = HttpClient(CIO) {
-        engine {
-            pipelining = false
-        }
-
-        install(Logging) {
-            logger = Logger.DEFAULT
-            level = LogLevel.HEADERS //LogLevel.ALL
-        }
-
-        install(JWTAuthPlugin) {
-            authTokens = sessionTokens
-        }
-
-        install(HttpCache) {
-            //publicStorage(getPlatformCache())
-        }
-
-        defaultRequest {
-            val hostUrl = url.takeFrom(server.host)
-            url.protocol = hostUrl.protocol
-            url.host = hostUrl.host
-            url.port = hostUrl.port
-        }
-
-        install(HttpTimeout) {
-            requestTimeoutMillis = Long.MAX_VALUE // TODO: make this configurable
-        }
-
-        expectSuccess = false
-    }
-
-
-    private fun checkTokens(auth: AuthInfo?): TokenStatus {
-        if (auth == null) return TokenStatus.NoAuth
-        val decoded = decodeJwt(auth.accessJwt)
-        Butterfly.log.v { "Decoded auth: $decoded" }
-        Butterfly.log.d { "Time: ${Clock.System.now()}" }
-        Butterfly.log.d { "Expiry: ${decoded?.expiresAt}" }
-        if (decoded?.expiresAt != null && decoded.expiresAt < Clock.System.now()) {
-            val refreshDecoded = decodeJwt(auth.refreshJwt)
-            Butterfly.log.v { "Refresh decoded: $refreshDecoded" }
-            Butterfly.log.d { "Refresh expiry: ${refreshDecoded?.expiresAt}" }
-            if (refreshDecoded?.expiresAt != null && refreshDecoded.expiresAt < Clock.System.now()) {
-                Butterfly.log.d { "Refresh token expired at ${refreshDecoded.expiresAt}" }
-                Butterfly.log.d { "Kicking to login screen" }
-                return TokenStatus.RefreshFailed
-            }
-            Butterfly.log.d { "Access token expired at ${decoded.expiresAt}" }
-            return TokenStatus.AccessExpired
-        }
-        return TokenStatus.Valid
-    }
-    var api: BlueskyApi = XrpcBlueskyApi(atpClient)
-
-
-    private fun refreshSession() = serviceScope.launch {
-        if(auth == null) return@launch
-        api.refreshSession().onFailure {
-            Butterfly.log.e { "Failed to refresh session: $it" }
-            setAuth(null)
-        }.onSuccess { response ->
-            val newAuth = if (response.did != auth?.did) {
-                return@launch
-            } else session.auth?.copy(
-                accessJwt = response.accessJwt,
-                refreshJwt = response.refreshJwt,
-                handle = response.handle,
-                did = response.did,
-                didDoc = response.didDoc
-            )
-            setAuth(newAuth)
-        }
-    }
-
-    private fun sessionRefresh() = serviceScope.launch {
-        while(true) {
-            delay(Duration.parse("20m"))
-            refreshSession()
-            delay(Duration.parse("120m"))
-        }
-    }
-
-    init { serviceScope.launch {
-            when(checkTokens(auth)) {
-                TokenStatus.Valid -> resumeSession()
-                TokenStatus.AccessExpired -> {
-                    log.d { "Refreshing..." }
-                    refreshSession().invokeOnCompletion { serviceScope.launch { resumeSession() } }
-                }
-                else -> setAuth(null)
-            }
-        }
-    }
-
-    private fun extractServer(didDoc: JsonElement?): Server {
-        return if (didDoc != null) {
-            val service =
-                didDoc.jsonObject["service"]?.jsonArray?.get(0)?.jsonObject?.get("serviceEndpoint")?.jsonPrimitive?.content
-            if (service != null) {
-                Server.CustomServer(service)
-            } else server
-        } else server
-    }
-
-    private suspend fun resumeSession() = withContext(Dispatchers.IO) {
-        setAuth(auth)
-        Butterfly.log.d { "Startup auth:\n$auth" }
-        Butterfly.log.d { "User ID: $id" }
-        Butterfly.log.v { "User:\n${userData.getUser(id)}" }
-        refreshService = sessionRefresh()
-    }
-
-    suspend fun switchUser(newId: AtIdentifier) = withContext(Dispatchers.IO) {
-        if (newId == id) return@withContext
-        refreshSession() // Do a refresh to maximize lifetime of the old auth
-        sessionTokens.value?.let { tokens -> // Store the old auth info
-            session.auth?.withTokens(tokens)?.let { auth ->
-                id?.let { did -> userData.setAuth(did, auth) } } }
-        val newUser = userData.findUser(newId)
-        if(newUser == null) {
-            log.e { "Existing user $newId not found" }
-            return@withContext
-        }
-        api.getSession().onSuccess {
-            Butterfly.log.d { "New session:\n$it" }
-            val newServer = extractServer(it.didDoc)
-            if (newServer != newUser.server) {
-                userData.removeUser(newId)
-                userData.addUser(newUser.copy(server = newServer))
-            }
-        }.onFailure {
-            Butterfly.log.e { "Failed to get session: $it" }
-            setAuth(null)
-        }
-    }
-
-
-    fun logout() = serviceScope.launch {
-        endSession()
-    }
-
-    suspend fun endSession() = withContext(Dispatchers.IO) {
-        api.deleteSession()
-        setAuth(null)
-    }
-
-    suspend fun makeLoginRequest(credentials: Credentials, server: Server = Server.BlueskySocial): Result<AuthInfo> {
-        return withContext(Dispatchers.IO) {
-            api.createSession(CreateSessionRequest(credentials.username.handle, credentials.password)).map { response ->
-                AuthInfo(
-                    accessJwt = response.accessJwt,
-                    refreshJwt = response.refreshJwt,
-                    handle = response.handle,
-                    did = response.did,
-                    didDoc = response.didDoc
-                )
-            }.onSuccess {
-                id = it.did
-                // If the didDoc has a PDS endpoint listed, we can use that instead of the overall server
-                val newServer = extractServer(it.didDoc)
-                userData.addUser(credentials, it.did, newServer)
-                setAuth(it)
-                refreshService = sessionRefresh()
-            }
-        }
-    }
-
-    suspend fun makeRecord(record: RecordUnion) : Result<StrongRef> {
+    suspend fun createRecord(record: RecordUnion) : Result<StrongRef> {
         val did = id ?: return Result.failure(Error("Not logged in"))
         val timestamp : Timestamp = Clock.System.now()
         val request = when(record) {
@@ -354,8 +102,6 @@ class ButterflyAgent: KoinComponent {
             .map { StrongRef(it.uri, it.cid) }
     }
 
-    fun createRecord(record: RecordUnion) = CoroutineScope(Dispatchers.IO).launch { makeRecord(record) }
-
     fun deleteRecord(type: RecordType, uri: AtUri?, rkey: String? = null): Boolean {
         if (id == null) return false
         if (uri != null) {
@@ -376,23 +122,26 @@ class ButterflyAgent: KoinComponent {
         return api.deleteRecord(DeleteRecordRequest(id!!, type.collection, rkey))
     }
 
-    var prefs: BskyPreferences = BskyPreferences()
-        private set
+    fun post(post: app.bsky.feed.Post) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.MakePost(post)) }
+    fun deletePost(uri: AtUri) = CoroutineScope(Dispatchers.IO).launch { deleteRecord(RecordType.Post, uri) }
 
-    fun preferences(): Flow<BskyPreferences> = flow {
-        val oldPrefs = prefs
-        getPreferences().onSuccess {
-            prefs = it
-            emit(prefs)
-        }.onFailure {
-            Butterfly.log.e { "Failed to get preferences: $it" }
-            prefs = oldPrefs
-            emit(prefs)
-        }
-    }
+    fun like(post: StrongRef) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.Like(post)) }
+    fun deleteLike(uri: AtUri)  { deleteRecord(RecordType.Like, uri) }
+
+    fun repost(post: StrongRef) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.Repost(post)) }
+    fun deleteRepost(uri: AtUri) { deleteRecord(RecordType.Repost, uri) }
+
+    fun block(subject: Did) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.Block(subject)) }
+    fun unblock(uri: AtUri) { deleteRecord(RecordType.Block, uri) }
+
+    fun follow(subject: Did) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.Follow(subject)) }
+    fun deleteFollow(uri: AtUri) { deleteRecord(RecordType.Follow, uri) }
 
     suspend fun getPreferences(): Result<BskyPreferences> = withContext(Dispatchers.IO) {
-        return@withContext api.getPreferences().map { it.toPreferences() }
+        return@withContext api.getPreferences().map { prefs ->
+            labelers = prefs.preferences.toLabelerDids()
+            prefs
+        }.map { it.toPreferences() }
     }
 
     suspend fun resolveHandle(handle: Handle): Result<Did> {
@@ -685,6 +434,29 @@ class ButterflyAgent: KoinComponent {
         }
     }
 
+    suspend fun getLabelDefinitions(prefs: BskyPreferences): Map<LabelerID, Map<LabelValueID, InterpretedLabelDefinition>> {
+        val dids: MutableList<LabelValueID> = appLabelers.map { it.did }.toMutableList()
+        dids.addAll(prefs.modPrefs.labelers.map { it.key })
+        return getLabelDefinitions(dids)
+    }
+
+    suspend fun getLabelDefinitions(prefs: ModerationPreferences): Map<LabelerID, Map<LabelValueID, InterpretedLabelDefinition>> {
+        val dids: MutableList<LabelValueID> = appLabelers.map { it.did }.toMutableList()
+        dids.addAll(prefs.labelers.map { it.key })
+        return getLabelDefinitions(dids)
+    }
+
+    suspend fun getLabelDefinitions(prefs: List<LabelValueID>): Map<LabelerID, Map<LabelValueID, InterpretedLabelDefinition>> {
+        val labelDefs = getLabelersDetailed(prefs.map { Did(it) }).map { labelers ->
+            val labelDefs = mutableMapOf<LabelerID, Map<LabelValueID, InterpretedLabelDefinition>>()
+            for (labeler in labelers) {
+                labelDefs[labeler.creator.did.did] = InterpretedLabelDefinition.interpretLabelValueDefinitions(labeler)
+            }
+            labelDefs.toMap()
+        }.onFailure { return emptyMap() }.getOrNull() ?: emptyMap()
+        return labelDefs
+    }
+
     suspend fun updateProfile(updateFun: (ProfileUpdate?) -> ProfileUpdate) : Result<StrongRef> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         val repo = id!!
@@ -729,7 +501,7 @@ class ButterflyAgent: KoinComponent {
     }
 
     suspend fun blockModList(list: AtUri) : Result<Unit> = withContext(Dispatchers.IO) {
-        return@withContext makeRecord(RecordUnion.ListBlock(list)).map { }
+        return@withContext createRecord(RecordUnion.ListBlock(list)).map { }
     }
 
     suspend fun unblockModList(list: AtUri) : Result<Unit> = withContext(Dispatchers.IO) {
@@ -746,907 +518,298 @@ class ButterflyAgent: KoinComponent {
 
     suspend fun updateSeenNotifications(
         seenAt: Timestamp = Clock.System.now()
-    ) : Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         return@withContext api.updateSeen(UpdateSeenRequest(seenAt))
     }
-}
 
-@Serializable
-data class ProfileUpdate(
-    val displayName: String? = null,
-    val description: String? = null,
-    val avatar: String? = null,
-    val banner: String? = null,
-    val labels: List<SelfLabel> = emptyList(),
-    val joinedViaStarterPack: StarterPackViewBasic? = null,
-    val createdAt: Timestamp? = null,
-    val map: Map<String, JsonElement> = emptyMap(),
-) {
-    @OptIn(ExperimentalSerializationApi::class)
-    @SerialName("\$type")
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) public val type: String = "app.bsky.actor.profile"
-}
+    fun updateSavedFeeds(feedsToUpdate: List<SavedFeed>) = serviceScope.launch {
+        val update: (List<SavedFeed>) -> List<SavedFeed> = { feeds ->
+            feeds.map { savedFeed ->
+                val updatedVersion = feedsToUpdate.firstOrNull { it.id == savedFeed.id }
+                if (updatedVersion != null) {
+                    savedFeed.copy(pinned = updatedVersion.pinned)
+                } else savedFeed
+            }
+        }
+        updateSavedFeedsV2Prefs(update)
+    }
 
-@Serializable
-public data class BskyPreferences(
-    val feedView: FeedViewPref? = null,
-    val saved: List<SavedFeed> = emptyList(),
-    val personalDetails: PersonalDetailsPref? = null,
-    val modPrefs: ModerationPreferences = ModerationPreferences(),
-    val threadPrefs: ThreadViewPref? = null,
-    val interests: List<String> = emptyList(),
-    val skyFeedBuilderFeeds: List<AtUri> = emptyList(),
-    @Deprecated("use v2") val savedFeeds: SavedFeedsPref? = null,
-    val timelineIndex: Int? = null, // extracted from v1 saved feeds for now
-)
+    fun overwriteSavedFeeds(savedFeeds: List<SavedFeed>) = serviceScope.launch {
+        val uniqueFeeds = mutableMapOf<String, SavedFeed>()
+        savedFeeds.forEach { savedFeed ->
+            if(uniqueFeeds.containsKey(savedFeed.id)) {
+                uniqueFeeds.remove(savedFeed.id)
+            }
+            uniqueFeeds[savedFeed.id] = savedFeed
+        }
+        updateSavedFeedsV2Prefs { _ -> uniqueFeeds.values.toList() }
+    }
 
-fun GetPreferencesResponse.toPreferences() : BskyPreferences {
-    var newPrefs = BskyPreferences()
-    var newModPrefs = newPrefs.modPrefs
-    val labelPrefs = mutableListOf<ContentLabelPref>()
-    val labelers = mutableListOf<Did>()
-    val labelMap = labelers.associate {
-        it.did to mutableMapOf<LabelValueID, Visibility>() }.toMutableMap()
-    this.preferences.forEach { pref: PreferencesUnion ->
-        when(pref) {
-            is PreferencesUnion.FeedViewPref -> newPrefs = newPrefs.copy(feedView = pref.value)
-            is PreferencesUnion.AdultContentPref -> newModPrefs = newModPrefs.copy(adultContentEnabled = pref.value.enabled)
-            is PreferencesUnion.BskyAppStatePref -> {}
-            is PreferencesUnion.ContentLabelPref -> labelPrefs.add(pref.value)
-            is PreferencesUnion.HiddenPostsPref -> newModPrefs = newModPrefs.copy(hiddenPosts = pref.value.items)
-            is PreferencesUnion.InterestsPref -> newPrefs = newPrefs.copy(interests = pref.value.tags)
-            is PreferencesUnion.LabelersPref -> labelers.addAll(pref.value.labelers.map { it.did })
-            is PreferencesUnion.MutedWordsPref -> newModPrefs = newModPrefs.copy(mutedWords = pref.value.items)
-            is PreferencesUnion.PersonalDetailsPref -> newPrefs = newPrefs.copy(personalDetails = pref.value)
-            is PreferencesUnion.SavedFeedsPref -> newPrefs = newPrefs.copy(savedFeeds = pref.value, timelineIndex = pref.value.timelineIndex)
-            is PreferencesUnion.SavedFeedsPrefV2 -> newPrefs = newPrefs.copy(saved = pref.value.items)
-            is PreferencesUnion.SkyFeedBuilderFeedsPref -> newPrefs = newPrefs.copy(skyFeedBuilderFeeds = pref.value.feeds)
-            is PreferencesUnion.ThreadViewPref -> newPrefs = newPrefs.copy(threadPrefs = pref.value)
+    fun addSavedFeeds(savedFeeds: List<SavedFeed>) = serviceScope.launch {
+        updateSavedFeedsV2Prefs {feeds ->
+            feeds + savedFeeds
         }
     }
-    for (pref in labelPrefs) {
-        if (pref.labelerDid != null) {
-            val labeler = labelers.firstOrNull { it == pref.labelerDid }
-            if (labeler == null) continue
-            val labelerMap = labelMap[labeler.did] ?: mutableMapOf()
-            labelerMap[pref.label] = pref.visibility
-            labelMap[labeler.did] = labelerMap
-        } else {
-            val prefMap = newModPrefs.labels.toMutableMap()
-            prefMap[pref.label] = pref.visibility
-            newModPrefs = newModPrefs.copy(labels = prefMap.toMap())
+
+    fun removeSavedFeeds(ids: List<String>) = serviceScope.launch {
+        updateSavedFeedsV2Prefs { feeds ->
+            feeds.filter { !ids.contains(it.id) }
         }
     }
-    newModPrefs = newModPrefs.copy(labelers = labelMap.mapValues { it.value.toMap() })
-    return newPrefs.copy(modPrefs = newModPrefs)
-}
 
+    suspend fun updateMutedWord(word: MutedWord) = withContext(Dispatchers.IO) {
+        updatePreferences { prefs ->
+            val mutedWords = (prefs.lastOrNull {
+                it is PreferencesUnion.MutedWordsPref
+            } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
+            if (mutedWords != null) {
+                 val updatedMutedWords = mutedWords.map { existingItem ->
+                    if (existingItem.value == word.value) {
+                        existingItem.copy(
+                            value = word.value,
+                            targets = word.targets.ifEmpty { existingItem.targets },
+                            actorTarget = word.actorTarget ?: existingItem.actorTarget,
+                            expiresAt = word.expiresAt ?: existingItem.expiresAt,
+                            id = TID.next().toString()
+                        )
+                    } else existingItem
+                }
+                val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
+                    .plus(PreferencesUnion.MutedWordsPref(
+                        MutedWordsPref(updatedMutedWords.toPersistentList())
+                    ))
+                return@updatePreferences updatedPrefs
+            } else return@updatePreferences prefs
 
-@Serializable
-data class PagedList<T>(
-    val cursor: String?,
-    val items: List<T> = emptyList(),
-)
-
-@Serializable
-data class ProfileListResponse(
-    val subject: ProfileView,
-    val cursor: String?,
-    val profiles: List<ProfileView>,
-)
-
-@Serializable
-data class PostQueryResponse<T>(
-    val uri: AtUri,
-    val cid: Cid? = null,
-    val cursor: String? = null,
-    val posts: List<T> = emptyList(),
-)
-typealias LabelerID = String
-typealias LabelValueID = String
-@Serializable
-data class ModerationPreferences(
-    val adultContentEnabled: Boolean = false,
-    val labels: Map<String, Visibility> = mapOf(
-        LabelValue.HIDE.value to Hide.defaultSetting!!,
-        LabelValue.WARN.value to Warn.defaultSetting!!,
-        LabelValue.NO_UNAUTHENTICATED.value to NoUnauthed.defaultSetting!!,
-        LabelValue.PORN.value to Porn.defaultSetting!!,
-        LabelValue.SEXUAL.value to Sexual.defaultSetting!!,
-        LabelValue.NUDITY.value to Nudity.defaultSetting!!,
-        LabelValue.GRAPHIC_MEDIA.value to GraphicMedia.defaultSetting!!,
-    ),
-    val labelers: Map<LabelerID, Map<LabelValueID, Visibility>> = mapOf(), // DID -> labelValue -> setting
-    val hiddenPosts: List<AtUri> = emptyList(),
-    val mutedWords: List<MutedWord> = emptyList(),
-)
-
-@Parcelize
-data class ContentHandling(
-    val scope: Blurs,
-    val action: LabelAction,
-    val source: LabelDescription,
-    val id: String,
-    val icon: LabelIcon,
-): Parcelable
-
-
-
-@Parcelize
-
-@Serializable
-sealed interface LabelIcon: Parcelable {
-    val labelerAvatar: String?
-
-
-    @Serializable
-    
-    data class CircleBanSign(
-        override val labelerAvatar: String?
-    ): LabelIcon
-
-    @Serializable
-    
-    data class Warning(
-        override val labelerAvatar: String?
-    ): LabelIcon
-
-    @Serializable
-    
-    data class EyeSlash(
-        override val labelerAvatar: String?
-    ): LabelIcon
-
-    @Serializable
-    
-    data class CircleInfo(
-        override val labelerAvatar: String?
-    ): LabelIcon
-
-}
-
-@Parcelize
-
-@Serializable
-sealed interface LabelDescription: Parcelable {
-    val name: String
-    val description: String
-
-    @Parcelize
-    
-    @Serializable
-    sealed interface Block: LabelDescription, Parcelable
-    @Parcelize
-    
-    @Serializable
-    data object Blocking: Block {
-        override val name: String = "User Blocked"
-        override val description: String = "You have blocked this user. You cannot view their content"
-
-    }
-    @Parcelize
-    
-    @Serializable
-    data object BlockedBy: Block {
-        override val name: String = "User Blocking You"
-        override val description: String = "This user has blocked you. You cannot view their content."
-    }
-    @Parcelize
-    
-    @Serializable
-    data class BlockList(
-        val listName: String,
-        val listUri: AtUri,
-    ): Block {
-        override val name: String = "User Blocked by $listName"
-        override val description: String = "This user is on a block list you subscribe to. You cannot view their content."
-    }
-    @Parcelize
-    
-    @Serializable
-    data object OtherBlocked: Block {
-        override val name: String = "Content Not Available"
-        override val description: String = "This content is not available because one of the users involved has blocked the other."
+        }
     }
 
-    @Parcelize
-    
-    @Serializable
-    sealed interface Muted: LabelDescription, Parcelable
-
-    @Parcelize
-    
-    @Serializable
-    data class MuteList(
-        val listName: String,
-        val listUri: AtUri,
-    ): Muted {
-        override val name: String = "User Muted by $listName"
-        override val description: String = "This user is on a mute list you subscribe to."
-    }
-    @Parcelize
-    
-    @Serializable
-    data object YouMuted: Muted {
-        override val name: String = "Account Muted"
-        override val description: String = "You have muted this user."
-    }
-    @Parcelize
-    
-    @Serializable
-    data class MutedWord(val word: String): Muted {
-        override val name: String = "Post Hidden by Muted Word"
-        override val description: String = "This post contains the word or tag \"$word\". You've chosen to hide it."
+    suspend fun removeMutedWord(word: MutedWord) = withContext(Dispatchers.IO) {
+        updatePreferences { prefs ->
+            val mutedWords = (prefs.lastOrNull {
+                it is PreferencesUnion.MutedWordsPref
+            } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
+            if (mutedWords != null) {
+                val updatedMutedWords = mutedWords.filter { existingItem ->
+                    existingItem.value != word.value
+                }
+                val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
+                    .plus(PreferencesUnion.MutedWordsPref(
+                        MutedWordsPref(updatedMutedWords.toPersistentList())
+                    ))
+                return@updatePreferences updatedPrefs
+            } else return@updatePreferences prefs
+        }
     }
 
-    @Parcelize
-    
-    @Serializable
-    data class HiddenPost(val uri: AtUri): LabelDescription {
-        override val name: String = "Post Hidden by You"
-        override val description: String = "You have hidden this post."
+    suspend fun removeMutedWords(words: List<MutedWord>) = withContext(Dispatchers.IO) {
+        updatePreferences { prefs ->
+            val mutedWords = (prefs.lastOrNull {
+                it is PreferencesUnion.MutedWordsPref
+            } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
+            if (mutedWords != null) {
+                val updatedMutedWords = mutedWords.filter { existingItem ->
+                    words.none { existingItem.value == it.value }
+                }
+                val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
+                    .plus(PreferencesUnion.MutedWordsPref(
+                        MutedWordsPref(updatedMutedWords.toPersistentList())
+                    ))
+                return@updatePreferences updatedPrefs
+            } else return@updatePreferences prefs
+
+        }
     }
 
-    @Parcelize
-    
-    @Serializable
-    data class Label(
-        override val name: String,
-        override val description: String,
-        val severity: Severity,
-    ): LabelDescription
-}
-
-@Parcelize
-
-@Serializable
-sealed interface LabelSource: Parcelable {
-    
-    @Serializable
-    data object User: LabelSource
-    
-    @Serializable
-    data class List(
-        val list: ListView,
-    ): LabelSource
-    
-    @Serializable
-    data class Labeler(
-        val labeler: LabelerViewDetailed,
-    ): LabelSource
-}
-
-@Parcelize
-
-@Serializable
-sealed interface LabelCause: Parcelable {
-    val downgraded: Boolean
-    val priority: Int
-    val source: LabelSource
-    
-    @Serializable
-    data class Blocking(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 3
-    }
-    
-    @Serializable
-    data class BlockedBy(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 4
+    fun hidePost(postUri: AtUri) = serviceScope.launch {
+        updateHiddenPost(postUri, HiddenPostAction.Hide)
     }
 
-    
-    @Serializable
-    data class BlockOther(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 4
+    fun unhidePost(postUri: AtUri) = serviceScope.launch {
+        updateHiddenPost(postUri, HiddenPostAction.Unhide)
     }
 
-    
-    @Serializable
-    data class Label(
-        override val source: LabelSource,
-        val label: BskyLabel,
-        val labelDef: InterpretedLabelDefinition,
-        val target: LabelTarget,
-        val setting: DefaultSetting,
-        val behaviour: ModBehaviour,
-        val noOverride: Boolean,
-        override val priority: Int,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        init {
-            require(
-                priority == 1 || priority == 2 || priority == 3 ||
-                        priority == 5 || priority == 7 || priority == 8
+    fun setFeedViewPrefs(feed: String, feedViewPref: FeedViewPref) = serviceScope.launch {
+        updatePreferences { prefs ->
+            val existingPref = (prefs.lastOrNull {
+                it is PreferencesUnion.FeedViewPref && it.value.feed == feed
+            } as? PreferencesUnion.FeedViewPref)?.value
+            if (existingPref != null) {
+                val updatedPref = existingPref.copy(
+                    feed = feed,
+                    hideReplies = feedViewPref.hideReplies ?: existingPref.hideReplies,
+                    hideRepliesByUnfollowed = feedViewPref.hideRepliesByUnfollowed ?: existingPref.hideRepliesByUnfollowed,
+                    hideRepliesByLikeCount = feedViewPref.hideRepliesByLikeCount ?: existingPref.hideRepliesByLikeCount,
+                    hideReposts = feedViewPref.hideReposts ?: existingPref.hideReposts,
+                    hideQuotePosts = feedViewPref.hideQuotePosts ?: existingPref.hideQuotePosts,
+                    lab_mergeFeedEnabled = feedViewPref.lab_mergeFeedEnabled ?: existingPref.lab_mergeFeedEnabled
+                )
+                val updatedPrefs = prefs.filter { it !is PreferencesUnion.FeedViewPref }
+                    .plus(PreferencesUnion.FeedViewPref(updatedPref))
+                return@updatePreferences updatedPrefs
+            } else return@updatePreferences prefs
+        }
+    }
+
+    fun setThreadViewPrefs(threadViewPref: ThreadViewPref) = serviceScope.launch {
+        updatePreferences { prefs ->
+            val existingPref = (prefs.lastOrNull {
+                it is PreferencesUnion.ThreadViewPref
+            } as? PreferencesUnion.ThreadViewPref)?.value
+            if (existingPref != null) {
+                val updatedPref = existingPref.copy(
+                    sort = threadViewPref.sort ?: existingPref.sort,
+                    prioritizeFollowedUsers = threadViewPref.prioritizeFollowedUsers ?: existingPref.prioritizeFollowedUsers
+                )
+                val updatedPrefs = prefs.filter { it !is PreferencesUnion.ThreadViewPref }
+                    .plus(PreferencesUnion.ThreadViewPref(updatedPref))
+                return@updatePreferences updatedPrefs
+            } else return@updatePreferences prefs
+        }
+    }
+
+    fun setContentLabelPref(
+        key: String,
+        value: Visibility,
+        labelerDid: Did? = null
+    ) = serviceScope.launch {
+        updatePreferences { prefs ->
+            var labelPref = (prefs.lastOrNull {
+                it is PreferencesUnion.ContentLabelPref
+                        && it.value.labelerDid == labelerDid
+                        && it.value.label == key
+            } as? PreferencesUnion.ContentLabelPref)?.value
+            labelPref = labelPref?.copy(
+                visibility = value,
+            ) ?: ContentLabelPref(
+                labelerDid = labelerDid,
+                label = key,
+                visibility = value,
             )
+            var updatedPrefs = prefs.filter { it !is PreferencesUnion.ContentLabelPref }
+            if(labelPref.labelerDid == null) {
+                val legacyLabelValue = labelPref.getLegacyLabel()
+                if(labelPref.isLegacyLabel()) {
+                    val legacyLabelPref = prefs.lastOrNull {
+                        it is PreferencesUnion.ContentLabelPref
+                                && it.value.labelerDid == null
+                                && it.value.label == legacyLabelValue
+                    } as? PreferencesUnion.ContentLabelPref
+                    val updatedLegacyPref = legacyLabelPref?.value?.copy(visibility = value)
+                        ?: ContentLabelPref(
+                            labelerDid = null,
+                            label = legacyLabelValue,
+                            visibility = value,
+                        )
+                    updatedPrefs = updatedPrefs.plus(PreferencesUnion.ContentLabelPref(updatedLegacyPref))
+                }
+            }
+            updatedPrefs = updatedPrefs.plus(PreferencesUnion.ContentLabelPref(labelPref))
+            return@updatePreferences updatedPrefs
         }
     }
 
-    
-    @Serializable
-    data class Muted(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 6
-    }
-
-    
-    @Serializable
-    data class MutedWord(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 6
-    }
-
-    
-    @Serializable
-    data class Hidden(
-        override val source: LabelSource,
-        override val downgraded: Boolean,
-    ): LabelCause {
-        override val priority: Int = 6
-    }
-
-}
-
-@Serializable
-enum class LabelValueDefFlag {
-    NoOverride,
-    Adult,
-    Unauthed,
-    NoSelf,
-}
-
-@Parcelize
-@Serializable
-
-open class InterpretedLabelDefinition(
-    val identifier: String,
-    val configurable: Boolean,
-    val severity: Severity,
-    val whatToHide: Blurs,
-    val defaultSetting: Visibility?,
-    @Contextual
-    val flags: List<LabelValueDefFlag> = persistentListOf(),
-    val behaviours: ModBehaviours,
-    val localizedName: String = "",
-    val localizedDescription: String = "",
-    @Contextual
-    val allDescriptions: List<LabelValueDefinitionStrings> = persistentListOf(),
-): Parcelable {
-    companion object {
-
-    }
-
-    public fun toContentHandling(target: LabelTarget, avatar: String? = null): ContentHandling {
-        val action = behaviours.forScope(whatToHide, target).minOrNull() ?: when(defaultSetting) {
-            Visibility.HIDE -> LabelAction.Blur
-            Visibility.WARN -> LabelAction.Alert
-            Visibility.IGNORE -> LabelAction.Inform
-            Visibility.SHOW -> LabelAction.None
-            null -> LabelAction.None
-        }
-        return ContentHandling(
-            id = identifier,
-            scope = whatToHide,
-            action = action,
-            source = LabelDescription.Label(
-                name = localizedName,
-                description = localizedDescription,
-                severity = severity,
-            ),
-            icon = when(severity) {
-                Severity.ALERT -> LabelIcon.Warning(labelerAvatar = avatar)
-                Severity.NONE -> LabelIcon.CircleInfo(labelerAvatar = avatar)
-                Severity.INFORM -> LabelIcon.CircleInfo(labelerAvatar = avatar)
+    fun addLabeler(did: Did) = serviceScope.launch {
+        updatePreferences { prefs ->
+            var labelersPref = (prefs.lastOrNull {
+                it is PreferencesUnion.LabelersPref }
+                    as? PreferencesUnion.LabelersPref)?.value?.labelers?.toList() ?: emptyList()
+            if (labelersPref.none { it.did == did }) {
+                labelersPref = labelersPref + LabelerPrefItem(did)
             }
-        )
-    }
-}
-
-val LABELS: PersistentMap<LabelValue, InterpretedLabelDefinition> = persistentMapOf(
-    LabelValue.HIDE to Hide,
-    LabelValue.WARN to Warn,
-    LabelValue.NO_UNAUTHENTICATED to NoUnauthed,
-    LabelValue.PORN to Porn,
-    LabelValue.SEXUAL to Sexual,
-    LabelValue.NUDITY to Nudity,
-    LabelValue.GRAPHIC_MEDIA to GraphicMedia,
-)
-
-@Parcelize
-
-@Serializable
-data object Hide: InterpretedLabelDefinition(
-    "!hide",
-    false,
-    Severity.ALERT,
-    Blurs.CONTENT,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.NoSelf, LabelValueDefFlag.NoOverride),
-    ModBehaviours(
-        account = ModBehaviour(
-            profileList = LabelAction.Blur,
-            profileView = LabelAction.Blur,
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Hide",
-    localizedDescription = "Hide",
-)
-
-
-@Serializable
-data object Warn: InterpretedLabelDefinition(
-    "!warn",
-    false,
-    Severity.NONE,
-    Blurs.CONTENT,
-    Visibility.WARN,
-    persistentListOf(LabelValueDefFlag.NoSelf),
-    ModBehaviours(
-        account = ModBehaviour(
-            profileList = LabelAction.Blur,
-            profileView = LabelAction.Blur,
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Warn",
-    localizedDescription = "Warn",
-)
-
-@Parcelize
-
-@Serializable
-data object NoUnauthed: InterpretedLabelDefinition(
-    "!no-unauthenticated",
-    false,
-    Severity.NONE,
-    Blurs.CONTENT,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.NoOverride, LabelValueDefFlag.Unauthed),
-    ModBehaviours(
-        account = ModBehaviour(
-            profileList = LabelAction.Blur,
-            profileView = LabelAction.Blur,
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-            displayName = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentList = LabelAction.Blur,
-            contentView = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "No Unauthenticated",
-    localizedDescription = "Do not show to unauthenticated users",
-)
-
-
-@Serializable
-data object Porn: InterpretedLabelDefinition(
-    "porn",
-    true,
-    Severity.NONE,
-    Blurs.MEDIA,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.Adult),
-    ModBehaviours(
-        account = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentMedia = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Sexually Explicit",
-    localizedDescription = "This content is sexually explicit",
-)
-
-
-@Serializable
-data object Sexual: InterpretedLabelDefinition(
-    "sexual",
-    true,
-    Severity.NONE,
-    Blurs.MEDIA,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.Adult),
-    ModBehaviours(
-        account = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentMedia = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Suggestive",
-    localizedDescription = "This content may be suggestive or sexual in nature",
-)
-
-
-@Serializable
-data object Nudity: InterpretedLabelDefinition(
-    "nudity",
-    true,
-    Severity.NONE,
-    Blurs.MEDIA,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.Adult),
-    ModBehaviours(
-        account = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentMedia = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Nudity",
-    localizedDescription = "This content contains nudity, artistic or otherwise",
-)
-
-
-@Serializable
-data object GraphicMedia: InterpretedLabelDefinition(
-    "graphic-media",
-    true,
-    Severity.NONE,
-    Blurs.MEDIA,
-    Visibility.HIDE,
-    persistentListOf(LabelValueDefFlag.Adult),
-    ModBehaviours(
-        account = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        profile = ModBehaviour(
-            avatar = LabelAction.Blur,
-            banner = LabelAction.Blur,
-        ),
-        content = ModBehaviour(
-            contentMedia = LabelAction.Blur,
-        ),
-    ),
-    localizedName = "Graphic Content",
-    localizedDescription = "This content is graphic or violent in nature",
-)
-
-@OptIn(ExperimentalSerializationApi::class)
-@Parcelize
-@Serializable
-
-data class BskyLabel(
-    val version: Long?,
-    val creator: Did,
-    val uri: AtUri,
-    val cid: Cid?,
-    val value: String,
-    val overwritesPrevious: Boolean?,
-    val createdTimestamp: Timestamp,
-    val expirationTimestamp: Timestamp?,
-    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
-    @ByteString
-    val signature: ByteArray?,
-): Parcelable {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as BskyLabel
-
-        if (version != other.version) return false
-        if (creator != other.creator) return false
-        if (uri != other.uri) return false
-        if (cid != other.cid) return false
-        if (value != other.value) return false
-        if (overwritesPrevious != other.overwritesPrevious) return false
-        if (createdTimestamp != other.createdTimestamp) return false
-        if (expirationTimestamp != other.expirationTimestamp) return false
-        if (signature != null) {
-            if (other.signature == null) return false
-            if (!signature.contentEquals(other.signature)) return false
-        } else if (other.signature != null) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = version?.hashCode() ?: 0
-        result = 31 * result + creator.hashCode()
-        result = 31 * result + uri.hashCode()
-        result = 31 * result + (cid?.hashCode() ?: 0)
-        result = 31 * result + value.hashCode()
-        result = 31 * result + (overwritesPrevious?.hashCode() ?: 0)
-        result = 31 * result + createdTimestamp.hashCode()
-        result = 31 * result + (expirationTimestamp?.hashCode() ?: 0)
-        result = 31 * result + (signature?.contentHashCode() ?: 0)
-        return result
-    }
-
-    fun getLabelValue(): LabelValue? {
-        return when (value) {
-            LabelValue.PORN.value -> LabelValue.PORN
-            LabelValue.GORE.value -> LabelValue.GORE
-            LabelValue.NSFL.value -> LabelValue.NSFL
-            LabelValue.SEXUAL.value -> LabelValue.SEXUAL
-            LabelValue.GRAPHIC_MEDIA.value -> LabelValue.GRAPHIC_MEDIA
-            LabelValue.NUDITY.value -> LabelValue.NUDITY
-            LabelValue.DOXXING.value -> LabelValue.DOXXING
-            LabelValue.DMCA_VIOLATION.value -> LabelValue.DMCA_VIOLATION
-            LabelValue.NO_PROMOTE.value -> LabelValue.NO_PROMOTE
-            LabelValue.NO_UNAUTHENTICATED.value -> LabelValue.NO_UNAUTHENTICATED
-            LabelValue.WARN.value -> LabelValue.WARN
-            LabelValue.HIDE.value -> LabelValue.HIDE
-            else -> null
+            val updatedPrefs = prefs.filter { it !is PreferencesUnion.LabelersPref }
+                .plus(PreferencesUnion.LabelersPref(LabelersPref(labelersPref.toPersistentList())))
+            return@updatePreferences updatedPrefs
+        }.map { prefs ->
+            labelers = prefs.toLabelerDids()
         }
     }
-}
 
-@Serializable
-enum class LabelScope {
-    Content,
-    Media,
-    None,
-}
-
-fun Blurs.toScope(): LabelScope {
-    return when (this) {
-        Blurs.CONTENT -> LabelScope.Content
-        Blurs.MEDIA -> LabelScope.Media
-        Blurs.NONE -> LabelScope.None
-    }
-}
-
-
-@Serializable
-enum class LabelAction {
-    Blur,
-    Alert,
-    Inform,
-    None
-}
-
-
-@Serializable
-enum class LabelTarget {
-    Account,
-    Profile,
-    Content
-}
-
-@Parcelize
-
-@Serializable
-open class ModBehaviour(
-    val profileList: LabelAction = LabelAction.None,
-    val profileView: LabelAction = LabelAction.None,
-    val avatar: LabelAction = LabelAction.None,
-    val banner: LabelAction = LabelAction.None,
-    val displayName: LabelAction = LabelAction.None,
-    val contentList: LabelAction = LabelAction.None,
-    val contentView: LabelAction = LabelAction.None,
-    val contentMedia: LabelAction = LabelAction.None,
-): Parcelable {
-    init {
-        require(avatar != LabelAction.Inform)
-        require(banner != LabelAction.Inform && banner != LabelAction.Alert)
-        require(displayName != LabelAction.Inform && displayName != LabelAction.Alert)
-        require(contentMedia != LabelAction.Inform && contentMedia != LabelAction.Alert)
-    }
-
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as ModBehaviour
-
-        if (profileList != other.profileList) return false
-        if (profileView != other.profileView) return false
-        if (avatar != other.avatar) return false
-        if (banner != other.banner) return false
-        if (displayName != other.displayName) return false
-        if (contentList != other.contentList) return false
-        if (contentView != other.contentView) return false
-        if (contentMedia != other.contentMedia) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = profileList.hashCode()
-        result = 31 * result + profileView.hashCode()
-        result = 31 * result + avatar.hashCode()
-        result = 31 * result + banner.hashCode()
-        result = 31 * result + displayName.hashCode()
-        result = 31 * result + contentList.hashCode()
-        result = 31 * result + contentView.hashCode()
-        result = 31 * result + contentMedia.hashCode()
-        return result
-    }
-}
-
-@Parcelize
-
-@Serializable
-data class ModBehaviours(
-    val account: ModBehaviour = ModBehaviour(),
-    val profile: ModBehaviour = ModBehaviour(),
-    val content: ModBehaviour = ModBehaviour(),
-): Parcelable {
-    fun forScope(scope: Blurs, target: LabelTarget): List<LabelAction> {
-        return when (target) {
-            LabelTarget.Account -> when (scope) {
-                Blurs.CONTENT -> listOf(
-                    account.contentList, account.contentView, account.avatar,
-                    account.banner, account.profileList, account.profileView,
-                    account.displayName
-                )
-                Blurs.MEDIA -> listOf(account.contentMedia, account.avatar, account.banner)
-                Blurs.NONE -> listOf()
+    fun removeLabeler(did: Did) = serviceScope.launch {
+        updatePreferences { prefs ->
+            var labelersPref = (prefs.lastOrNull {
+                it is PreferencesUnion.LabelersPref }
+                    as? PreferencesUnion.LabelersPref)?.value?.labelers?.toList() ?: emptyList()
+            if (labelersPref.any { it.did == did }) {
+                labelersPref = labelersPref.filter { it.did != did }
             }
-            LabelTarget.Profile -> when (scope) {
-                Blurs.CONTENT -> listOf(profile.contentList, profile.contentView, profile.displayName)
-                Blurs.MEDIA -> listOf(profile.avatar, profile.banner, profile.contentMedia)
-                Blurs.NONE -> listOf()
-            }
-            LabelTarget.Content -> when (scope) {
-                Blurs.CONTENT -> listOf(content.contentList, content.contentView)
-                Blurs.MEDIA -> listOf(
-                    content.contentMedia,
-                    content.avatar,
-                    content.banner
-                )
-                Blurs.NONE -> listOf()
-            }
+            val updatedPrefs = prefs.filter { it !is PreferencesUnion.LabelersPref }
+                .plus(PreferencesUnion.LabelersPref(LabelersPref(labelersPref.toPersistentList())))
+            return@updatePreferences updatedPrefs
+        }.map { prefs ->
+            labelers = prefs.toLabelerDids()
         }
     }
+
+    private val prefsMutex = Mutex()
+
+    private suspend fun updatePreferences(
+        updateFun: (List<PreferencesUnion>) -> List<PreferencesUnion>?
+    ): Result<List<PreferencesUnion>> = withContext(Dispatchers.IO) {
+        return@withContext prefsMutex.withLock {
+            val prefs = api.getPreferences().map {
+                it.preferences
+            }.onFailure {
+                return@withLock Result.failure(Error("Failed to get preferences: $it"))
+            }.getOrNull() ?: return@withLock Result.failure(Error("Preferences not found"))
+            val newPrefs = updateFun(prefs) ?: return@withLock Result.success(prefs)
+            api.putPreferences(PutPreferencesRequest(newPrefs.toPersistentList())).onFailure {
+                return@withLock Result.failure(Error("Failed to update preferences: $it"))
+            }.getOrNull() ?: return@withLock Result.failure(Error("Preferences not found"))
+            return@withLock Result.success(prefs)
+        }
+    }
+
+    private suspend fun updateSavedFeedsV2Prefs(
+        update: (List<SavedFeed>) -> List<SavedFeed>
+    ): List<SavedFeed> = withContext(Dispatchers.IO) {
+        var maybeMutatedSavedFeeds = listOf<SavedFeed>()
+        updatePreferences { prefs ->
+            var existingPref = (prefs.lastOrNull {
+                it is PreferencesUnion.SavedFeedsPrefV2
+            } as? PreferencesUnion.SavedFeedsPrefV2)?.value?.items?.toList()
+            if (existingPref != null) {
+                maybeMutatedSavedFeeds = update(existingPref)
+                existingPref = existingPref + maybeMutatedSavedFeeds
+            } else {
+                maybeMutatedSavedFeeds = update(emptyList())
+                existingPref = maybeMutatedSavedFeeds
+            }
+
+            val pinned = existingPref.filter { it.pinned }
+            val saved = existingPref.filter { !it.pinned }
+            existingPref = pinned + saved
+
+            val updatedPrefs = prefs.filter { it !is PreferencesUnion.SavedFeedsPrefV2 }
+                .plus(PreferencesUnion.SavedFeedsPrefV2(SavedFeedsPrefV2(existingPref.toPersistentList())))
+            return@updatePreferences updatedPrefs
+        }
+        return@withContext maybeMutatedSavedFeeds
+    }
+
+    private suspend fun updateHiddenPost(
+        postUri: AtUri,
+        action: HiddenPostAction
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        updatePreferences { prefs ->
+            var hiddenPosts = (prefs.lastOrNull {
+                it is PreferencesUnion.HiddenPostsPref
+            } as? PreferencesUnion.HiddenPostsPref)?.value?.items?.toList()
+            if (hiddenPosts != null) {
+                hiddenPosts = if (action == HiddenPostAction.Hide) {
+                    (hiddenPosts + postUri).distinct()
+                } else {
+                    hiddenPosts.filter { it != postUri }
+                }
+            } else if(action == HiddenPostAction.Hide) {
+                hiddenPosts = listOf(postUri)
+            }
+            val updatedPrefs = prefs.filter { it !is PreferencesUnion.HiddenPostsPref }
+                .plus(PreferencesUnion.HiddenPostsPref(HiddenPostsPref(
+                    hiddenPosts?.toPersistentList() ?: persistentListOf()
+                )))
+            return@updatePreferences updatedPrefs
+        }.map {  }
+    }
 }
 
-
-@Serializable
-open class DescribedBehaviours(
-    val behaviours: ModBehaviours,
-    val label: String,
-    val description: String,
-){
-
-}
-
-
-
-@Serializable
-data object BlockBehaviour: ModBehaviour(
-    profileList = LabelAction.Blur,
-    profileView = LabelAction.Blur,
-    avatar = LabelAction.Blur,
-    banner = LabelAction.Blur,
-    contentList = LabelAction.Blur,
-    contentView = LabelAction.Blur,
-)
-
-
-@Serializable
-data object MuteBehaviour: ModBehaviour(
-    profileList = LabelAction.Inform,
-    profileView = LabelAction.Alert,
-    contentList = LabelAction.Blur,
-    contentView = LabelAction.Inform,
-)
-
-
-@Serializable
-data object MuteWordBehaviour: ModBehaviour(
-    contentList = LabelAction.Blur,
-    contentView = LabelAction.Blur,
-)
-
-
-@Serializable
-data object HideBehaviour: ModBehaviour(
-    contentList = LabelAction.Blur,
-    contentView = LabelAction.Blur,
-)
-
-
-@Serializable
-data object InappropriateMediaBehaviour: ModBehaviour(
-    contentMedia = LabelAction.Blur,
-)
-
-
-@Serializable
-data object InappropriateAvatarBehaviour: ModBehaviour(
-    avatar = LabelAction.Blur,
-)
-
-
-@Serializable
-data object InappropriateBannerBehaviour: ModBehaviour(
-    banner = LabelAction.Blur,
-)
-
-
-@Serializable
-data object InappropriateDisplayNameBehaviour: ModBehaviour(
-    displayName = LabelAction.Blur,
-)
-
-
-@Serializable
-val BlurAllMedia = ModBehaviours(
-    content = InappropriateMediaBehaviour,
-    profile = ModBehaviour(
-        avatar = LabelAction.Blur,
-        banner = LabelAction.Blur,
-        contentMedia = LabelAction.Blur,
-    ),
-    account = ModBehaviour(
-        avatar = LabelAction.Blur,
-        banner = LabelAction.Blur,
-        contentMedia = LabelAction.Blur,
-    ),
-)
-
-
-
-@Serializable
-data object NoopBehaviour: ModBehaviour()

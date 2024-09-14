@@ -16,5 +16,12 @@ public data class DecodedJWT(
     val scope: String?,
 )
 
+enum class TokenStatus {
+    Valid,
+    AccessExpired,
+    RefreshExpired,
+    RefreshFailed,
+    NoAuth,
+}
 
 expect fun decodeJwt(jwt: String): DecodedJWT?
