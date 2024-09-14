@@ -1,12 +1,8 @@
 package app.bsky.feed
 
-import kotlin.Any
-import kotlin.Long
-import kotlin.Pair
-import kotlin.String
+import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.ReadOnlyList
 
 @Serializable
 public data class GetTimelineQuery(

@@ -7,9 +7,7 @@ import kotlinx.coroutines.runBlocking
 import okio.Path.Companion.toPath
 
 
-class SessionRepository(
-    val dir: String
-) {
+class SessionRepository(dir: String) {
     private val authStore: KStore<AuthInfo> = storeOf(
         file = "$dir/jwt.json".toPath(),
         default = null,
@@ -23,13 +21,6 @@ class SessionRepository(
         set(value) { runBlocking { authStore.set(value) } }
 
     fun auth(): Flow<AuthInfo?> = authStore.updates
-
-
-    constructor(
-        dir: String,
-        auth: AuthInfo,) : this(dir) {
-            this.auth = auth
-        }
 }
 
 

@@ -70,7 +70,7 @@ class Butterfly: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.ALL //LogLevel.ALL
+            level = LogLevel.HEADERS //LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -146,7 +146,7 @@ class Butterfly: KoinComponent {
                 }
                 if(maybeUser == null) {
                     // If we don't have the user, we can create it (make some assumptions if we don't have the server info)
-                    val u = AtpUser(auth.did, Server.BlueskySocial, auth)
+                    val u = AtpUser(auth.handle, auth.did, Server.BlueskySocial, auth)
                     userService.addUser(u)
                     u
                 } else maybeUser
@@ -167,9 +167,9 @@ class Butterfly: KoinComponent {
 
     private fun sessionRefresh() = serviceScope.launch {
         while(true) {
-            delay(Duration.parse("1m"))
-            refreshSession()
             delay(Duration.parse("20m"))
+            refreshSession()
+            delay(Duration.parse("120m"))
         }
     }
     fun refreshSession() = serviceScope.launch {
@@ -232,7 +232,7 @@ class Butterfly: KoinComponent {
 
     suspend fun makeLoginRequest(credentials: Credentials, server: Server = Server.BlueskySocial): Result<AuthInfo> {
         return withContext(Dispatchers.IO) {
-            atpUser = AtpUser(credentials, server)
+
             api.createSession(CreateSessionRequest(credentials.username.handle, credentials.password)).map { response ->
                 AuthInfo(
                     accessJwt = response.accessJwt,
@@ -243,6 +243,7 @@ class Butterfly: KoinComponent {
                 )
             }
             .onSuccess {
+                atpUser = AtpUser(credentials, it.did, server)
                 // If the didDoc has a PDS endpoint listed, we can use that instead of the overall server
                 val newServer = if (it.didDoc != null) {
                     val service =
@@ -254,9 +255,9 @@ class Butterfly: KoinComponent {
                 session.auth = it
                 authCache.add(it.toTokens())
                 sessionTokens.value = it.toTokens()
-                userService.addUser(credentials, newServer)
+                userService.addUser(credentials, it.did, newServer)
                 userService.setAuth(credentials.username, it)
-                atpUser = AtpUser(credentials, newServer, it)
+                atpUser = AtpUser(credentials, it.did, newServer, it)
                 refreshService = sessionRefresh()
             }
         }

@@ -1,5 +1,6 @@
 package com.atproto.label
 
+import app.bsky.actor.Visibility
 import kotlinx.serialization.SerialName
 
 public enum class Severity {
@@ -27,6 +28,14 @@ public enum class DefaultSetting {
   WARN,
   @SerialName("hide")
   HIDE,
+}
+
+fun DefaultSetting.toVisibility(): Visibility {
+  return when(this) {
+    DefaultSetting.IGNORE -> Visibility.IGNORE
+    DefaultSetting.WARN -> Visibility.WARN
+    DefaultSetting.HIDE -> Visibility.HIDE
+  }
 }
 
 public enum class LabelValue(val value: String) {

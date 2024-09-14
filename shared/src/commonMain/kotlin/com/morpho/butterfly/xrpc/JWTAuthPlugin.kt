@@ -61,7 +61,9 @@ class JWTAuthPlugin(
                     plugin.json.decodeFromString(result.response.bodyAsText())
                 }
 
-                if (response.getOrNull()?.error?.contains("ExpiredToken") == true) {
+                if (response.getOrNull()?.error?.contains("ExpiredToken") == true
+                    || response.getOrNull()?.error?.contains("InvalidToken") == true
+                ) {
                     val refreshResponse = scope.post("/xrpc/com.atproto.server.refreshSession") {
                         this.bearerAuth(plugin.authTokens.value?.refreshToken ?: "")
                     }

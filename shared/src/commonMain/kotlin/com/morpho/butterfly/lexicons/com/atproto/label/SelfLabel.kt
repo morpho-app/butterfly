@@ -1,6 +1,5 @@
 package com.atproto.label
 
-import kotlin.String
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,4 +18,14 @@ public data class SelfLabel(
       "val.count() must be <= 128, but was ${`val`.count()}"
     }
   }
+  companion object {
+    fun isSelfLabel(label: Label): Boolean {
+      return selfLabels.contains(SelfLabel(label.`val`))
+    }
+  }
 }
+
+val selfLabels = listOf(
+  SelfLabel("!no-unauthenticated"),
+  SelfLabel("sexual"),
+)
