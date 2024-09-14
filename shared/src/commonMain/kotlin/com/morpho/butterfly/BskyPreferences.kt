@@ -26,7 +26,12 @@ data class ModerationPreferences(
     val mutedWords: List<MutedWord> = emptyList(),
 )
 
-
+fun matchMutedWord(existingWord: MutedWord, newWord: MutedWord): Boolean {
+    val existingId = existingWord.id
+    val matchById = existingId != null && existingId === newWord.id
+    val matchByWord = existingWord.value == newWord.value
+    return matchById || matchByWord
+}
 
 fun GetPreferencesResponse.toPreferences() : BskyPreferences {
     var newPrefs = BskyPreferences()

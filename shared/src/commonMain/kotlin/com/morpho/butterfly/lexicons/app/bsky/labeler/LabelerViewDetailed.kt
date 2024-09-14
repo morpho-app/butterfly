@@ -2,13 +2,12 @@ package app.bsky.labeler
 
 import app.bsky.actor.ProfileView
 import com.atproto.label.Label
-import kotlin.Long
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.Serializable
 
 @Serializable
 public data class LabelerViewDetailed(

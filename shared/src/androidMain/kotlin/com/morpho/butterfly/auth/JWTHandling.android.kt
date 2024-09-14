@@ -23,7 +23,7 @@ private val decoder = object : Base64Decoder {
 
 class ATJWTHeader(val typ: String): JWTAuthHeader("ES256K") {
     init {
-        require(typ == "at+jwt").let { "typ must be 'at+jwt', but was $typ" }
+        //require(typ == "at+jwt").let { "typ must be 'at+jwt', but was $typ" }
     }
 }
 

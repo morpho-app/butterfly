@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinxSerialization)
+
+    alias(libs.plugins.jetbrainsCompose) // testing
+    alias(libs.plugins.compose.compiler) // testing
+
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kspPlugin)
     alias(libs.plugins.kotlinxAbiPlugin)
@@ -43,7 +47,6 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.ktor.logging)
             implementation(libs.slf4j.api)
-            //implementation(libs.slf4j.simple)
             implementation(kotlin("reflect"))
             implementation(libs.okio)
             implementation(libs.ktor.cio)
@@ -63,6 +66,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.core.coroutines)
             implementation(libs.koin.annotations)
+
+            implementation(compose.materialIconsExtended)
 
             implementation("com.russhwolf:multiplatform-settings:1.2.0")
             implementation("com.russhwolf:multiplatform-settings-serialization:1.2.0")

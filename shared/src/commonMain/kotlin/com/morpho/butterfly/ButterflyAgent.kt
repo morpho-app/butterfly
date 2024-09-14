@@ -564,7 +564,7 @@ class ButterflyAgent: AtpAgent() {
             } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
             if (mutedWords != null) {
                  val updatedMutedWords = mutedWords.map { existingItem ->
-                    if (existingItem.value == word.value) {
+                    if (matchMutedWord(existingItem, word)) {
                         existingItem.copy(
                             value = word.value,
                             targets = word.targets.ifEmpty { existingItem.targets },
@@ -572,7 +572,7 @@ class ButterflyAgent: AtpAgent() {
                             expiresAt = word.expiresAt ?: existingItem.expiresAt,
                             id = TID.next().toString()
                         )
-                    } else existingItem
+                    } else word
                 }
                 val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
                     .plus(PreferencesUnion.MutedWordsPref(
@@ -591,7 +591,7 @@ class ButterflyAgent: AtpAgent() {
             } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
             if (mutedWords != null) {
                 val updatedMutedWords = mutedWords.filter { existingItem ->
-                    existingItem.value != word.value
+                    !matchMutedWord(existingItem, word)
                 }
                 val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
                     .plus(PreferencesUnion.MutedWordsPref(
@@ -609,7 +609,7 @@ class ButterflyAgent: AtpAgent() {
             } as? PreferencesUnion.MutedWordsPref)?.value?.items?.toList()
             if (mutedWords != null) {
                 val updatedMutedWords = mutedWords.filter { existingItem ->
-                    words.none { existingItem.value == it.value }
+                    words.none { matchMutedWord(existingItem, it) }
                 }
                 val updatedPrefs = prefs.filter { it !is PreferencesUnion.MutedWordsPref }
                     .plus(PreferencesUnion.MutedWordsPref(

@@ -1,12 +1,14 @@
 package com.atproto.label
 
-import kotlin.String
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.Language
+import dev.icerock.moko.parcelize.Parcelable
+import dev.icerock.moko.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
 /**
  * Strings which describe the label in the UI, localized into a specific language.
  */
+@Parcelize
 @Serializable
 public data class LabelValueDefinitionStrings(
   /**
@@ -21,7 +23,7 @@ public data class LabelValueDefinitionStrings(
    * A longer description of what the label means and why it might be applied.
    */
   public val description: String,
-) {
+): Parcelable {
   init {
     require(name.count() <= 640) {
       "name.count() must be <= 640, but was ${name.count()}"

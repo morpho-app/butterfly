@@ -20,7 +20,7 @@ public data class MutedWord(
     public val targets: ReadOnlyList<MutedWordTarget>,
     public val actorTarget: MuteTargetGroup? = null,
     public val expiresAt: String? = null, // ISO 8601 datetime string
-    public val id: String = TID.next().toString()
+    public val id: String? = TID.next().toString()
 )
 
 public enum class MuteTargetGroup {

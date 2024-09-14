@@ -1,13 +1,18 @@
 package com.morpho.butterfly
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.HideImage
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.vector.ImageVector
 import app.bsky.actor.PreferencesUnion
 import app.bsky.actor.Visibility
 import app.bsky.graph.ListView
 import app.bsky.labeler.LabelerViewDetailed
 import com.atproto.label.*
 import com.morpho.butterfly.model.Timestamp
-import dev.icerock.moko.parcelize.Parcelable
-import dev.icerock.moko.parcelize.Parcelize
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -28,70 +33,88 @@ fun List<PreferencesUnion>.toLabelerDids(): List<Did> {
         .distinct()
 }
 
-@Parcelize
+
 data class ContentHandling(
     val scope: Blurs,
     val action: LabelAction,
     val source: LabelDescription,
     val id: String,
     val icon: LabelIcon,
-): Parcelable
+)
 
-@Parcelize
+
+@Immutable
 @Serializable
-sealed interface LabelIcon: Parcelable {
+sealed interface LabelIcon {
     val labelerAvatar: String?
-
+    val icon: ImageVector
 
     @Serializable
+    @Immutable
     data class CircleBanSign(
         override val labelerAvatar: String?
-    ): LabelIcon
+    ): LabelIcon {
+        override val icon: ImageVector
+            get() = Icons.Default.StopCircle
+    }
 
     @Serializable
+    @Immutable
     data class Warning(
         override val labelerAvatar: String?
-    ): LabelIcon
+    ): LabelIcon {
+        override val icon: ImageVector
+            get() = Icons.Default.Warning
+    }
 
     @Serializable
+    @Immutable
     data class EyeSlash(
         override val labelerAvatar: String?
-    ): LabelIcon
+    ): LabelIcon {
+        override val icon: ImageVector
+            get() = Icons.Default.HideImage
+    }
 
     @Serializable
+    @Immutable
     data class CircleInfo(
         override val labelerAvatar: String?
-    ): LabelIcon
+    ): LabelIcon {
+        override val icon: ImageVector
+            get() = Icons.Default.Info
+    }
+
 }
 
-@Parcelize
 
+@Immutable
 @Serializable
-sealed interface LabelDescription: Parcelable {
+sealed interface LabelDescription {
     val name: String
     val description: String
 
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
-    sealed interface Block: LabelDescription, Parcelable
-    @Parcelize
-
+    sealed interface Block: LabelDescription
+    
+    @Immutable
     @Serializable
     data object Blocking: Block {
         override val name: String = "User Blocked"
         override val description: String = "You have blocked this user. You cannot view their content"
 
     }
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data object BlockedBy: Block {
         override val name: String = "User Blocking You"
         override val description: String = "This user has blocked you. You cannot view their content."
     }
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data class BlockList(
         val listName: String,
@@ -100,21 +123,21 @@ sealed interface LabelDescription: Parcelable {
         override val name: String = "User Blocked by $listName"
         override val description: String = "This user is on a block list you subscribe to. You cannot view their content."
     }
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data object OtherBlocked: Block {
         override val name: String = "Content Not Available"
         override val description: String = "This content is not available because one of the users involved has blocked the other."
     }
 
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
-    sealed interface Muted: LabelDescription, Parcelable
+    sealed interface Muted: LabelDescription
 
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data class MuteList(
         val listName: String,
@@ -123,31 +146,31 @@ sealed interface LabelDescription: Parcelable {
         override val name: String = "User Muted by $listName"
         override val description: String = "This user is on a mute list you subscribe to."
     }
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data object YouMuted: Muted {
         override val name: String = "Account Muted"
         override val description: String = "You have muted this user."
     }
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data class MutedWord(val word: String): Muted {
         override val name: String = "Post Hidden by Muted Word"
         override val description: String = "This post contains the word or tag \"$word\". You've chosen to hide it."
     }
 
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data class HiddenPost(val uri: AtUri): LabelDescription {
         override val name: String = "Post Hidden by You"
         override val description: String = "You have hidden this post."
     }
 
-    @Parcelize
-
+    
+    @Immutable
     @Serializable
     data class Label(
         override val name: String,
@@ -156,33 +179,32 @@ sealed interface LabelDescription: Parcelable {
     ): LabelDescription
 }
 
-@Parcelize
-
+@Immutable
 @Serializable
-sealed interface LabelSource: Parcelable {
-
+sealed interface LabelSource {
+    @Immutable
     @Serializable
     data object User: LabelSource
-
+    @Immutable
     @Serializable
     data class List(
         val list: ListView,
     ): LabelSource
-
+    @Immutable
     @Serializable
     data class Labeler(
         val labeler: LabelerViewDetailed,
     ): LabelSource
 }
 
-@Parcelize
 
+@Immutable
 @Serializable
-sealed interface LabelCause: Parcelable {
+sealed interface LabelCause {
     val downgraded: Boolean
     val priority: Int
     val source: LabelSource
-
+    @Immutable
     @Serializable
     data class Blocking(
         override val source: LabelSource,
@@ -190,7 +212,7 @@ sealed interface LabelCause: Parcelable {
     ): LabelCause {
         override val priority: Int = 3
     }
-
+    @Immutable
     @Serializable
     data class BlockedBy(
         override val source: LabelSource,
@@ -199,7 +221,7 @@ sealed interface LabelCause: Parcelable {
         override val priority: Int = 4
     }
 
-
+    @Immutable
     @Serializable
     data class BlockOther(
         override val source: LabelSource,
@@ -208,7 +230,7 @@ sealed interface LabelCause: Parcelable {
         override val priority: Int = 4
     }
 
-
+    @Immutable
     @Serializable
     data class Label(
         override val source: LabelSource,
@@ -229,7 +251,7 @@ sealed interface LabelCause: Parcelable {
         }
     }
 
-
+    @Immutable
     @Serializable
     data class Muted(
         override val source: LabelSource,
@@ -238,7 +260,7 @@ sealed interface LabelCause: Parcelable {
         override val priority: Int = 6
     }
 
-
+    @Immutable
     @Serializable
     data class MutedWord(
         override val source: LabelSource,
@@ -247,7 +269,7 @@ sealed interface LabelCause: Parcelable {
         override val priority: Int = 6
     }
 
-
+    @Immutable
     @Serializable
     data class Hidden(
         override val source: LabelSource,
@@ -257,7 +279,7 @@ sealed interface LabelCause: Parcelable {
     }
 
 }
-
+@Immutable
 @Serializable
 enum class LabelValueDefFlag {
     NoOverride,
@@ -268,9 +290,8 @@ enum class LabelValueDefFlag {
 
 
 
-@Parcelize
 @Serializable
-
+@Immutable
 open class InterpretedLabelDefinition(
     val identifier: String,
     val definedBy: String? = null,
@@ -285,7 +306,7 @@ open class InterpretedLabelDefinition(
     val localizedDescription: String = "",
     @Contextual
     val allDescriptions: List<LabelValueDefinitionStrings> = persistentListOf(),
-): Parcelable {
+) {
     companion object {
         fun interpretLabelValueDefinition(def: LabelValueDefinition, definedBy: String? = null): InterpretedLabelDefinition {
 
@@ -410,8 +431,8 @@ val LABELS: PersistentMap<LabelValue, InterpretedLabelDefinition> = persistentMa
     LabelValue.GRAPHIC_MEDIA to GraphicMedia,
 )
 
-@Parcelize
 
+@Immutable
 @Serializable
 data object Hide: InterpretedLabelDefinition(
     "!hide",
@@ -479,8 +500,8 @@ data object Warn: InterpretedLabelDefinition(
     localizedDescription = "Warn",
 )
 
-@Parcelize
 
+@Immutable
 @Serializable
 data object NoUnauthed: InterpretedLabelDefinition(
     "!no-unauthenticated",
@@ -515,6 +536,7 @@ data object NoUnauthed: InterpretedLabelDefinition(
 )
 
 
+@Immutable
 @Serializable
 data object Porn: InterpretedLabelDefinition(
     "porn",
@@ -542,6 +564,7 @@ data object Porn: InterpretedLabelDefinition(
 )
 
 
+@Immutable
 @Serializable
 data object Sexual: InterpretedLabelDefinition(
     "sexual",
@@ -569,6 +592,7 @@ data object Sexual: InterpretedLabelDefinition(
 )
 
 
+@Immutable
 @Serializable
 data object Nudity: InterpretedLabelDefinition(
     "nudity",
@@ -596,6 +620,7 @@ data object Nudity: InterpretedLabelDefinition(
 )
 
 
+@Immutable
 @Serializable
 data object GraphicMedia: InterpretedLabelDefinition(
     "graphic-media",
@@ -623,8 +648,8 @@ data object GraphicMedia: InterpretedLabelDefinition(
 )
 
 @OptIn(ExperimentalSerializationApi::class)
-@Parcelize
 @Serializable
+@Immutable
 data class BskyLabel(
     val version: Long?,
     val creator: Did,
@@ -637,7 +662,7 @@ data class BskyLabel(
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @ByteString
     val signature: ByteArray?,
-): Parcelable {
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -692,6 +717,7 @@ data class BskyLabel(
     }
 }
 
+@Immutable
 @Serializable
 enum class LabelAction {
     Blur,
@@ -700,7 +726,7 @@ enum class LabelAction {
     None
 }
 
-
+@Immutable
 @Serializable
 enum class LabelTarget {
     Account,
@@ -708,7 +734,8 @@ enum class LabelTarget {
     Content
 }
 
-@Parcelize
+@Immutable
+
 @Serializable
 open class ModBehaviour(
     val profileList: LabelAction = LabelAction.None,
@@ -719,7 +746,7 @@ open class ModBehaviour(
     val contentList: LabelAction = LabelAction.None,
     val contentView: LabelAction = LabelAction.None,
     val contentMedia: LabelAction = LabelAction.None,
-): Parcelable {
+) {
     init {
         require(avatar != LabelAction.Inform)
         require(banner != LabelAction.Inform && banner != LabelAction.Alert)
@@ -759,14 +786,14 @@ open class ModBehaviour(
     }
 }
 
-@Parcelize
 
+@Immutable
 @Serializable
 data class ModBehaviours(
     val account: ModBehaviour = ModBehaviour(),
     val profile: ModBehaviour = ModBehaviour(),
     val content: ModBehaviour = ModBehaviour(),
-): Parcelable {
+) {
     fun forScope(scope: Blurs, target: LabelTarget): List<LabelAction> {
         return when (target) {
             LabelTarget.Account -> when (scope) {
@@ -796,7 +823,7 @@ data class ModBehaviours(
     }
 }
 
-
+@Immutable
 @Serializable
 open class DescribedBehaviours(
     val behaviours: ModBehaviours,
@@ -807,7 +834,7 @@ open class DescribedBehaviours(
 }
 
 
-
+@Immutable
 @Serializable
 data object BlockBehaviour: ModBehaviour(
     profileList = LabelAction.Blur,
@@ -818,7 +845,7 @@ data object BlockBehaviour: ModBehaviour(
     contentView = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object MuteBehaviour: ModBehaviour(
     profileList = LabelAction.Inform,
@@ -827,39 +854,39 @@ data object MuteBehaviour: ModBehaviour(
     contentView = LabelAction.Inform,
 )
 
-
+@Immutable
 @Serializable
 data object MuteWordBehaviour: ModBehaviour(
     contentList = LabelAction.Blur,
     contentView = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object HideBehaviour: ModBehaviour(
     contentList = LabelAction.Blur,
     contentView = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object InappropriateMediaBehaviour: ModBehaviour(
     contentMedia = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object InappropriateAvatarBehaviour: ModBehaviour(
     avatar = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object InappropriateBannerBehaviour: ModBehaviour(
     banner = LabelAction.Blur,
 )
 
-
+@Immutable
 @Serializable
 data object InappropriateDisplayNameBehaviour: ModBehaviour(
     displayName = LabelAction.Blur,
@@ -882,6 +909,6 @@ val BlurAllMedia = ModBehaviours(
 )
 
 
-
+@Immutable
 @Serializable
 data object NoopBehaviour: ModBehaviour()
