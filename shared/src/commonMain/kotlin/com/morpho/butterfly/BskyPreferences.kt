@@ -15,6 +15,7 @@ public data class BskyPreferences(
     val skyFeedBuilderFeeds: List<AtUri> = emptyList(),
     @Deprecated("use v2") val savedFeeds: SavedFeedsPref? = null,
     val timelineIndex: Int? = null, // extracted from v1 saved feeds for now
+    val languages: List<Language> = emptyList(),
 )
 
 @Serializable

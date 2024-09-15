@@ -1,6 +1,5 @@
 package com.morpho.butterfly
 
-import app.bsky.actor.ProfileView
 import app.bsky.graph.StarterPackViewBasic
 import com.atproto.label.SelfLabel
 import com.morpho.butterfly.model.Timestamp
@@ -9,6 +8,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlin.jvm.JvmInline
 
 enum class HiddenPostAction {
     Hide,
@@ -31,25 +31,43 @@ data class ProfileUpdate(
     @EncodeDefault(EncodeDefault.Mode.ALWAYS) public val type: String = "app.bsky.actor.profile"
 }
 
+@Serializable
+@JvmInline
+value class Cursor(val value: String?) {
+    companion object {
+        val Empty = Cursor(null)
+    }
+}
 
+typealias FeedRequest<Data> = suspend (Cursor, Long?) -> Result<PagedResponse<Data>>
 
 @Serializable
-data class PagedList<T>(
-    val cursor: String?,
-    val items: List<T> = emptyList(),
-)
+sealed interface PagedResponse<Data: Any>: Iterable<Data> {
+    val cursor: Cursor
+    val items: List<Data>
 
-@Serializable
-data class ProfileListResponse(
-    val subject: ProfileView,
-    val cursor: String?,
-    val profiles: List<ProfileView>,
-)
+    @Serializable
+    data class Feed<Data: Any>(
+        override val cursor: Cursor,
+        override val items: List<Data> = emptyList(),
+    ): PagedResponse<Data>
 
-@Serializable
-data class PostQueryResponse<T>(
-    val uri: AtUri,
-    val cid: Cid? = null,
-    val cursor: String? = null,
-    val posts: List<T> = emptyList(),
-)
+    @Serializable
+    data class Profile<Data: Any>(
+        val subject: Data,
+        override val cursor: Cursor,
+        override val items: List<Data> = emptyList(),
+    ): PagedResponse<Data>
+
+    @Serializable
+    data class FromRecord<Data: Any>(
+        val uri: AtUri,
+        val cid: Cid? = null,
+        override val cursor: Cursor,
+        override val items: List<Data> = emptyList(),
+    ): PagedResponse<Data>
+
+    override fun iterator(): Iterator<Data> {
+        return items.listIterator()
+    }
+}

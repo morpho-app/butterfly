@@ -180,31 +180,35 @@ class ButterflyAgent: AtpAgent() {
         algorithm: String? = null,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PagedList<FeedViewPost>> {
+    ): Result<PagedResponse.Feed<FeedViewPost>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getTimeline(GetTimelineQuery(algorithm, limit, cursor))
-                .map { resp -> PagedList(resp.cursor, resp.feed) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.feed) }
         }
     }
-    suspend fun getTimeline(query: JsonElement, cursor: String? = null): Result<PagedList<FeedViewPost>> {
+    suspend fun getTimeline(
+        query: JsonElement, cursor: String? = null
+    ): Result<PagedResponse.Feed<FeedViewPost>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         try {
-            val newQuery = json.decodeFromJsonElement<GetTimelineQuery>(query).copy(cursor = cursor)
+            val newQuery = json.decodeFromJsonElement<GetTimelineQuery>(query)
+                .copy(cursor = cursor)
             return withContext(Dispatchers.IO) {
                 api.getTimeline(newQuery)
-                    .map { resp -> PagedList(resp.cursor, resp.feed) }
+                    .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.feed) }
             }
         } catch (e: Exception) {
             return Result.failure(Error("Invalid query: $e"))
         }
     }
-    suspend fun getTimeline(query: JsonElement, ): Result<PagedList<FeedViewPost>> {
+    suspend fun getTimeline(query: JsonElement): Result<PagedResponse.Feed<FeedViewPost>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         try {
             val newQuery = json.decodeFromJsonElement<GetTimelineQuery>(query)
             return withContext(Dispatchers.IO) {
-                api.getTimeline(newQuery).map { resp -> PagedList(resp.cursor, resp.feed) }
+                api.getTimeline(newQuery).map { resp ->
+                    PagedResponse.Feed(Cursor(resp.cursor), resp.feed) }
             }
         } catch (e: Exception) {
             return Result.failure(Error("Invalid query: $e"))
@@ -216,11 +220,11 @@ class ButterflyAgent: AtpAgent() {
         limit: Long? = 50,
         cursor: String? = null,
         filter: GetAuthorFeedFilter? = GetAuthorFeedFilter.POSTS_WITH_REPLIES,
-    ): Result<PagedList<FeedViewPost>> {
+    ): Result<PagedResponse.Feed<FeedViewPost>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getAuthorFeed(GetAuthorFeedQuery(actor, limit, cursor, filter))
-                .map { resp -> PagedList(resp.cursor, resp.feed) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.feed) }
         }
     }
 
@@ -228,11 +232,11 @@ class ButterflyAgent: AtpAgent() {
         actor: AtIdentifier,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PagedList<FeedViewPost>> {
+    ): Result<PagedResponse.Feed<FeedViewPost>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getActorLikes(GetActorLikesQuery(actor, limit, cursor))
-                .map { resp -> PagedList(resp.cursor, resp.feed) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.feed) }
         }
     }
 
@@ -240,11 +244,12 @@ class ButterflyAgent: AtpAgent() {
         actor: AtIdentifier,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<ProfileListResponse> {
+    ): Result<PagedResponse.Profile<ProfileView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getFollowers(GetFollowersQuery(actor, limit, cursor))
-                .map { resp -> ProfileListResponse(resp.subject, resp.cursor, resp.followers) }
+                .map { resp ->
+                    PagedResponse.Profile(resp.subject, Cursor(resp.cursor), resp.followers) }
         }
     }
 
@@ -273,12 +278,12 @@ class ButterflyAgent: AtpAgent() {
         cid: Cid? = null,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PostQueryResponse<GetLikesLike>> {
+    ): Result<PagedResponse.FromRecord<GetLikesLike>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getLikes(GetLikesQuery(uri, cid, limit, cursor))
                 .map { resp ->
-                    PostQueryResponse(resp.uri, resp.cid, resp.cursor, resp.likes)
+                    PagedResponse.FromRecord(resp.uri, resp.cid, Cursor(resp.cursor), resp.likes)
                 }
         }
     }
@@ -288,12 +293,12 @@ class ButterflyAgent: AtpAgent() {
         cid: Cid? = null,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PostQueryResponse<ProfileView>> {
+    ): Result<PagedResponse.FromRecord<ProfileView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getRepostedBy(GetRepostedByQuery(uri, cid, limit, cursor))
                 .map { resp ->
-                    PostQueryResponse(resp.uri, resp.cid, resp.cursor, resp.repostedBy)
+                    PagedResponse.FromRecord(resp.uri, resp.cid, Cursor(resp.cursor), resp.repostedBy)
                 }
         }
     }
@@ -303,12 +308,12 @@ class ButterflyAgent: AtpAgent() {
         cid: Cid? = null,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PostQueryResponse<PostView>> {
+    ): Result<PagedResponse.FromRecord<PostView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getQuotes(GetQuotesQuery(uri, cid, limit, cursor))
                 .map { resp ->
-                    PostQueryResponse(resp.uri, resp.cid, resp.cursor, resp.posts)
+                    PagedResponse.FromRecord(resp.uri, resp.cid, Cursor(resp.cursor), resp.posts)
                 }
         }
     }
@@ -317,11 +322,11 @@ class ButterflyAgent: AtpAgent() {
         actor: AtIdentifier,
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<ProfileListResponse> {
+    ): Result<PagedResponse.Profile<ProfileView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getFollows(GetFollowsQuery(actor, limit, cursor))
-                .map { resp -> ProfileListResponse(resp.subject, resp.cursor, resp.follows) }
+                .map { resp -> PagedResponse.Profile(resp.subject, Cursor(resp.cursor), resp.follows) }
         }
     }
 
@@ -346,11 +351,11 @@ class ButterflyAgent: AtpAgent() {
     suspend fun getSuggestions(
         limit: Long? = 50,
         cursor: String? = null,
-    ): Result<PagedList<ProfileView>> {
+    ): Result<PagedResponse.Feed<ProfileView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.getSuggestions(GetSuggestionsQuery(limit, cursor))
-                .map { resp -> PagedList(resp.cursor, resp.actors) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.actors) }
         }
     }
 
@@ -359,11 +364,11 @@ class ButterflyAgent: AtpAgent() {
         q: String? = null,
         limit: Long? = 25,
         cursor: String? = null,
-    ): Result<PagedList<ProfileView>> {
+    ): Result<PagedResponse.Feed<ProfileView>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.searchActors(SearchActorsQuery(term, q, limit, cursor))
-                .map { resp -> PagedList(resp.cursor, resp.actors) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.actors) }
         }
     }
 
@@ -383,11 +388,11 @@ class ButterflyAgent: AtpAgent() {
         limit: Long? = 50,
         cursor: String? = null,
         seenAt: Timestamp? = null,
-    ): Result<PagedList<ListNotificationsNotification>> {
+    ): Result<PagedResponse.Feed<ListNotificationsNotification>> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
         return withContext(Dispatchers.IO) {
             api.listNotifications(ListNotificationsQuery(limit, cursor, seenAt))
-                .map { resp -> PagedList(resp.cursor, resp.notifications) }
+                .map { resp -> PagedResponse.Feed(Cursor(resp.cursor), resp.notifications) }
         }
     }
 

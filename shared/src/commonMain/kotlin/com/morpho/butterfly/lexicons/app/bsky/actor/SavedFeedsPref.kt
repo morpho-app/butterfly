@@ -32,12 +32,12 @@ public data class SavedFeed(
 }
 
 @Serializable
-public enum class FeedType {
+public enum class FeedType(val value: String) {
   @SerialName("feed")
-  FEED,
+  FEED("feed"),
   @SerialName("list")
-  LIST,
+  LIST("list"),
   @SerialName("timeline")
-  TIMELINE,
+  TIMELINE("timeline"),
 }
 
