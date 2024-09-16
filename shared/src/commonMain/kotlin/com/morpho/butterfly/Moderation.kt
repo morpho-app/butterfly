@@ -9,7 +9,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import app.bsky.actor.PreferencesUnion
 import app.bsky.actor.Visibility
-import app.bsky.graph.ListView
+import app.bsky.graph.ListViewBasic
 import app.bsky.labeler.LabelerViewDetailed
 import com.atproto.label.*
 import com.morpho.butterfly.model.Timestamp
@@ -61,7 +61,7 @@ sealed interface LabelIcon {
     @Serializable
     @Immutable
     data class Warning(
-        override val labelerAvatar: String?
+        override val labelerAvatar: String? = null
     ): LabelIcon {
         override val icon: ImageVector
             get() = Icons.Default.Warning
@@ -70,7 +70,7 @@ sealed interface LabelIcon {
     @Serializable
     @Immutable
     data class EyeSlash(
-        override val labelerAvatar: String?
+        override val labelerAvatar: String? = null
     ): LabelIcon {
         override val icon: ImageVector
             get() = Icons.Default.HideImage
@@ -79,7 +79,7 @@ sealed interface LabelIcon {
     @Serializable
     @Immutable
     data class CircleInfo(
-        override val labelerAvatar: String?
+        override val labelerAvatar: String? = null
     ): LabelIcon {
         override val icon: ImageVector
             get() = Icons.Default.Info
@@ -188,7 +188,7 @@ sealed interface LabelSource {
     @Immutable
     @Serializable
     data class List(
-        val list: ListView,
+        val list: ListViewBasic,
     ): LabelSource
     @Immutable
     @Serializable
@@ -234,10 +234,10 @@ sealed interface LabelCause {
     @Serializable
     data class Label(
         override val source: LabelSource,
-        val label: BskyLabel,
+        val label: com.atproto.label.Label,
         val labelDef: InterpretedLabelDefinition,
-        val target: LabelTarget,
-        val setting: DefaultSetting,
+        val target: Blurs,
+        val setting: Visibility,
         val behaviour: ModBehaviour,
         val noOverride: Boolean,
         override val priority: Int,
@@ -289,7 +289,6 @@ enum class LabelValueDefFlag {
 }
 
 
-
 @Serializable
 @Immutable
 open class InterpretedLabelDefinition(
@@ -307,6 +306,32 @@ open class InterpretedLabelDefinition(
     @Contextual
     val allDescriptions: List<LabelValueDefinitionStrings> = persistentListOf(),
 ) {
+    fun copy(
+        identifier: String = this.identifier,
+        definedBy: String? = this.definedBy,
+        configurable: Boolean = this.configurable,
+        severity: Severity = this.severity,
+        whatToHide: Blurs = this.whatToHide,
+        defaultSetting: Visibility? = this.defaultSetting,
+        flags: List<LabelValueDefFlag> = this.flags,
+        behaviours: ModBehaviours = this.behaviours,
+        localizedName: String = this.localizedName,
+        localizedDescription: String = this.localizedDescription,
+        allDescriptions: List<LabelValueDefinitionStrings> = this.allDescriptions,
+    ) = InterpretedLabelDefinition(
+        identifier = identifier,
+        definedBy = definedBy,
+        configurable = configurable,
+        severity = severity,
+        whatToHide = whatToHide,
+        defaultSetting = defaultSetting,
+        flags = flags,
+        behaviours = behaviours,
+        localizedName = localizedName,
+        localizedDescription = localizedDescription,
+        allDescriptions = allDescriptions,
+    )
+
     companion object {
         fun interpretLabelValueDefinition(def: LabelValueDefinition, definedBy: String? = null): InterpretedLabelDefinition {
 
@@ -822,17 +847,6 @@ data class ModBehaviours(
         }
     }
 }
-
-@Immutable
-@Serializable
-open class DescribedBehaviours(
-    val behaviours: ModBehaviours,
-    val label: String,
-    val description: String,
-){
-
-}
-
 
 @Immutable
 @Serializable

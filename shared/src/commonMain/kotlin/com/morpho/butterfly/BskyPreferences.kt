@@ -21,7 +21,7 @@ public data class BskyPreferences(
 @Serializable
 data class ModerationPreferences(
     val adultContentEnabled: Boolean = false,
-    val labels: Map<String, Visibility> = LABELS.mapValues { it.value.defaultSetting!! }.mapKeys { it.key.value },
+    val labels: Map<LabelValueID, Visibility> = LABELS.mapValues { it.value.defaultSetting!! }.mapKeys { it.key.value },
     val labelers: Map<LabelerID, Map<LabelValueID, Visibility>> = mapOf(), // DID -> labelValue -> setting
     val hiddenPosts: List<AtUri> = emptyList(),
     val mutedWords: List<MutedWord> = emptyList(),

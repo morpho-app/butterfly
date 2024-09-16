@@ -32,9 +32,10 @@ open class AtpAgent: KoinComponent {
     protected val userData: UserRepository by inject()
     protected val session: SessionRepository by inject()
 
+    val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     companion object {
-        val log = logging()
-        val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val log = logging("AtpAgent")
     }
 
     private var refreshService: Job? = null

@@ -27,10 +27,11 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import org.lighthousegames.logging.logging
 import kotlin.collections.List
 
 
-class ButterflyAgent: AtpAgent() {
+open class ButterflyAgent: AtpAgent() {
     var prefs: BskyPreferences = BskyPreferences()
         private set
 
@@ -114,6 +115,10 @@ class ButterflyAgent: AtpAgent() {
             }
         }
         return true
+    }
+
+    companion object {
+        val log = logging("ButterflyAgent")
     }
 
     suspend fun deleteRecord(type: RecordType, rkey: String): Result<Unit> {
