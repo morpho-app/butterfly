@@ -149,9 +149,10 @@ open class ButterflyAgent: AtpAgent() {
         }.map { it.toPreferences() }
     }
 
-    suspend fun resolveHandle(handle: Handle): Result<Did> {
+    suspend fun resolveHandle(handle: AtIdentifier): Result<Did> {
         return withContext(Dispatchers.IO) {
-            api.resolveHandle(ResolveHandleQuery(handle)).map { it.did }
+            if (handle is Did) return@withContext Result.success(handle)
+            api.resolveHandle(ResolveHandleQuery(Handle(handle.toString()))).map { it.did }
         }
     }
 

@@ -15,4 +15,6 @@ public enum class ListNotificationsReason {
   REPLY,
   @SerialName("quote")
   QUOTE,
+  @SerialName("placeholder")
+  PLACEHOLDER,
 }
