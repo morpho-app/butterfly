@@ -3,6 +3,7 @@ package app.bsky.actor
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.valueClassSerializer
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -194,6 +195,7 @@ public sealed interface PreferencesUnion {
   public value class SkyFeedBuilderFeedsPref(
     public val `value`: app.bsky.actor.SkyFeedBuilderFeedsPref,
   ) : PreferencesUnion
+
 }
 
 @Serializable
@@ -206,8 +208,8 @@ public data class SkyFeedBuilderFeedsPref(
 
 @Serializable
 public data class BskyAppStatePref(
-  public val activeProgressGuide: BskyAppProgressGuide,
-  public val queuedNudges: ReadOnlyList<String>,
+  public val activeProgressGuide: BskyAppProgressGuide? = null,
+  public val queuedNudges: ReadOnlyList<String> = persistentListOf(),
 )
 
 @Serializable

@@ -146,7 +146,11 @@ open class ButterflyAgent: AtpAgent() {
         return@withContext api.getPreferences().map { prefs ->
             labelers = prefs.preferences.toLabelerDids()
             prefs
-        }.map { it.toPreferences() }
+        }.map {
+            val newPrefs = it.toPreferences()
+            prefs = newPrefs
+            newPrefs
+        }
     }
 
     suspend fun resolveHandle(handle: AtIdentifier): Result<Did> {
