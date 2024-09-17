@@ -1,8 +1,3 @@
-
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinxSerialization)
@@ -23,16 +18,14 @@ version = "0.1"
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "1.8"
+            }
         }
     }
 
     jvm("desktop")
-//    linuxX64()
-//    mingwX64()
-//    linuxArm64()
 
     // iOS targets stubbed out for now
     // Can't build them on my desktop anyway
@@ -50,9 +43,6 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
-        commonMain.languageSettings {
-            progressiveMode = true
-        }
 
         commonMain.dependencies {
             implementation(libs.ktor.logging)
@@ -118,33 +108,37 @@ kotlin {
     task("testClasses")
 }
 
-composeCompiler {
-    includeSourceInformation = true
+publishing {
+    repositories {
+        maven {
+            name = "Butterfly"
+            description = "Multiplatform Kotlin library for the AT Protocol and Bluesky"
+            
+            url = uri("https://maven.pkg.github.com/morpho-app/butterfly")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+            }
+        }
+    }
 
-    featureFlags = setOf(
-        ComposeFeatureFlag.StrongSkipping.disabled(),
-        ComposeFeatureFlag.OptimizeNonSkippingGroups
-    )
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["kotlin"])
+        }
+    }
 }
 
 android {
     namespace = "com.morpho.butterfly"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk = 34
     defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        minSdk = 21
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
-    buildFeatures {
-        compose = true
-        //viewBinding = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
-
 }
 
 ksp {
@@ -153,8 +147,7 @@ ksp {
 
 dependencies {
     add("kspCommonMainMetadata", libs.koin.ksp.compiler) // Run KSP on [commonMain] code
-    //add("kspJvm", libs.koin.ksp.compiler)
-    add("kspAndroid", libs.koin.ksp.compiler)
+    //add("kspAndroid", libs.koin.ksp.compiler)
     //add("kspIosX64", libs.koin.ksp.compiler)
     //add("kspIosArm64", libs.koin.ksp.compiler)
     //add("kspIosSimulatorArm64", libs.koin.ksp.compiler)

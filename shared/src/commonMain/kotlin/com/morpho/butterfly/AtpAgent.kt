@@ -1,13 +1,7 @@
 package com.morpho.butterfly
 
 import com.atproto.server.CreateSessionRequest
-import com.morpho.butterfly.auth.AuthInfo
-import com.morpho.butterfly.auth.Credentials
-import com.morpho.butterfly.auth.Server
-import com.morpho.butterfly.auth.SessionRepository
-import com.morpho.butterfly.auth.TokenStatus
-import com.morpho.butterfly.auth.UserRepository
-import com.morpho.butterfly.auth.decodeJwt
+import com.morpho.butterfly.auth.*
 import com.morpho.butterfly.xrpc.JWTAuthPlugin
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
 import io.ktor.client.HttpClient
@@ -21,16 +15,9 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.takeFrom
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonArray
@@ -42,8 +29,8 @@ import org.lighthousegames.logging.logging
 import kotlin.time.Duration
 
 open class AtpAgent: KoinComponent {
-    val userData: UserRepository by inject()
-    val session: SessionRepository by inject()
+    protected val userData: UserRepository by inject()
+    protected val session: SessionRepository by inject()
 
     val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
