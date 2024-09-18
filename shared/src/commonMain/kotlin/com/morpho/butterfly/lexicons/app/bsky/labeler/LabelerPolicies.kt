@@ -1,6 +1,5 @@
 package app.bsky.labeler
 
-import com.atproto.label.LabelValue
 import com.atproto.label.LabelValueDefinition
 import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.collections.immutable.persistentListOf
@@ -12,7 +11,7 @@ public data class LabelerPolicies(
    * The label values which this labeler publishes. May include global or custom labels.
    */
 
-  public val labelValues: ReadOnlyList<LabelValue>,
+  public val labelValues: ReadOnlyList<String>,
   /**
    * Label values created by this labeler and scoped exclusively to it. Labels defined here will
    * override global label definitions for this labeler.

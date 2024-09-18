@@ -43,8 +43,8 @@ typealias FeedRequest<Data> = suspend (Cursor, Long?) -> Result<PagedResponse<Da
 
 @Serializable
 sealed interface PagedResponse<Data: Any>: Iterable<Data> {
-    val cursor: Cursor
-    val items: List<Data>
+    public val cursor: Cursor
+    public val items: List<Data>
 
     @Serializable
     data class Feed<Data: Any>(

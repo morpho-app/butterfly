@@ -1,6 +1,15 @@
 package com.morpho.butterfly
 
-import app.bsky.actor.*
+import app.bsky.actor.ContentLabelPref
+import app.bsky.actor.FeedViewPref
+import app.bsky.actor.GetPreferencesResponse
+import app.bsky.actor.MutedWord
+import app.bsky.actor.PersonalDetailsPref
+import app.bsky.actor.PreferencesUnion
+import app.bsky.actor.SavedFeed
+import app.bsky.actor.SavedFeedsPref
+import app.bsky.actor.ThreadViewPref
+import app.bsky.actor.Visibility
 import kotlinx.serialization.Serializable
 
 
@@ -21,7 +30,7 @@ public data class BskyPreferences(
 @Serializable
 data class ModerationPreferences(
     val adultContentEnabled: Boolean = false,
-    val labels: Map<LabelValueID, Visibility> = LABELS.mapValues { it.value.defaultSetting!! }.mapKeys { it.key.value },
+    val labels: Map<LabelValueID, Visibility> = LABELS.mapValues { it.value.defaultSetting }.mapKeys { it.key.value },
     val labelers: Map<LabelerID, Map<LabelValueID, Visibility>> = mapOf(), // DID -> labelValue -> setting
     val hiddenPosts: List<AtUri> = emptyList(),
     val mutedWords: List<MutedWord> = emptyList(),

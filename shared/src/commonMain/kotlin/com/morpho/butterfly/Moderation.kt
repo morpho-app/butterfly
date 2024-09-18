@@ -11,7 +11,12 @@ import app.bsky.actor.PreferencesUnion
 import app.bsky.actor.Visibility
 import app.bsky.graph.ListViewBasic
 import app.bsky.labeler.LabelerViewDetailed
-import com.atproto.label.*
+import com.atproto.label.Blurs
+import com.atproto.label.DefaultSetting
+import com.atproto.label.LabelValueDefinition
+import com.atproto.label.LabelValueDefinitionStrings
+import com.atproto.label.LabelValues
+import com.atproto.label.Severity
 import com.morpho.butterfly.model.Timestamp
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
@@ -297,7 +302,7 @@ open class InterpretedLabelDefinition(
     val configurable: Boolean,
     val severity: Severity,
     val whatToHide: Blurs,
-    val defaultSetting: Visibility?,
+    val defaultSetting: Visibility,
     @Contextual
     val flags: List<LabelValueDefFlag> = persistentListOf(),
     val behaviours: ModBehaviours,
@@ -312,7 +317,7 @@ open class InterpretedLabelDefinition(
         configurable: Boolean = this.configurable,
         severity: Severity = this.severity,
         whatToHide: Blurs = this.whatToHide,
-        defaultSetting: Visibility? = this.defaultSetting,
+        defaultSetting: Visibility = this.defaultSetting,
         flags: List<LabelValueDefFlag> = this.flags,
         behaviours: ModBehaviours = this.behaviours,
         localizedName: String = this.localizedName,
@@ -339,6 +344,7 @@ open class InterpretedLabelDefinition(
                 Severity.INFORM -> LabelAction.Inform
                 Severity.ALERT -> LabelAction.Alert
                 Severity.NONE -> LabelAction.None
+                Severity.WARN -> LabelAction.Alert
             }
             val behaviours = when(def.blurs) {
                 Blurs.CONTENT -> ModBehaviours(
@@ -394,7 +400,8 @@ open class InterpretedLabelDefinition(
                 DefaultSetting.HIDE -> Visibility.HIDE
                 DefaultSetting.IGNORE -> Visibility.IGNORE
                 DefaultSetting.WARN -> Visibility.WARN
-                null -> Visibility.SHOW
+                DefaultSetting.SHOW -> Visibility.SHOW
+                null -> Visibility.IGNORE
             }
             val flags = mutableListOf<LabelValueDefFlag>(LabelValueDefFlag.NoSelf)
             if(def.adultOnly == true) flags.add(LabelValueDefFlag.Adult)
@@ -441,19 +448,20 @@ open class InterpretedLabelDefinition(
                 Severity.ALERT -> LabelIcon.Warning(labelerAvatar = avatar)
                 Severity.NONE -> LabelIcon.CircleInfo(labelerAvatar = avatar)
                 Severity.INFORM -> LabelIcon.CircleInfo(labelerAvatar = avatar)
+                Severity.WARN -> LabelIcon.Warning(labelerAvatar = avatar)
             }
         )
     }
 }
 
-val LABELS: PersistentMap<LabelValue, InterpretedLabelDefinition> = persistentMapOf(
-    LabelValue.HIDE to Hide,
-    LabelValue.WARN to Warn,
-    LabelValue.NO_UNAUTHENTICATED to NoUnauthed,
-    LabelValue.PORN to Porn,
-    LabelValue.SEXUAL to Sexual,
-    LabelValue.NUDITY to Nudity,
-    LabelValue.GRAPHIC_MEDIA to GraphicMedia,
+val LABELS: PersistentMap<LabelValues, InterpretedLabelDefinition> = persistentMapOf(
+    LabelValues.HIDE to Hide,
+    LabelValues.WARN to Warn,
+    LabelValues.NO_UNAUTHENTICATED to NoUnauthed,
+    LabelValues.PORN to Porn,
+    LabelValues.SEXUAL to Sexual,
+    LabelValues.NUDITY to Nudity,
+    LabelValues.GRAPHIC_MEDIA to GraphicMedia,
 )
 
 
@@ -723,20 +731,20 @@ data class BskyLabel(
         return result
     }
 
-    fun getLabelValue(): LabelValue? {
+    fun getLabelValue(): LabelValues? {
         return when (value) {
-            LabelValue.PORN.value -> LabelValue.PORN
-            LabelValue.GORE.value -> LabelValue.GORE
-            LabelValue.NSFL.value -> LabelValue.NSFL
-            LabelValue.SEXUAL.value -> LabelValue.SEXUAL
-            LabelValue.GRAPHIC_MEDIA.value -> LabelValue.GRAPHIC_MEDIA
-            LabelValue.NUDITY.value -> LabelValue.NUDITY
-            LabelValue.DOXXING.value -> LabelValue.DOXXING
-            LabelValue.DMCA_VIOLATION.value -> LabelValue.DMCA_VIOLATION
-            LabelValue.NO_PROMOTE.value -> LabelValue.NO_PROMOTE
-            LabelValue.NO_UNAUTHENTICATED.value -> LabelValue.NO_UNAUTHENTICATED
-            LabelValue.WARN.value -> LabelValue.WARN
-            LabelValue.HIDE.value -> LabelValue.HIDE
+            LabelValues.PORN.value -> LabelValues.PORN
+            LabelValues.GORE.value -> LabelValues.GORE
+            LabelValues.NSFL.value -> LabelValues.NSFL
+            LabelValues.SEXUAL.value -> LabelValues.SEXUAL
+            LabelValues.GRAPHIC_MEDIA.value -> LabelValues.GRAPHIC_MEDIA
+            LabelValues.NUDITY.value -> LabelValues.NUDITY
+            LabelValues.DOXXING.value -> LabelValues.DOXXING
+            LabelValues.DMCA_VIOLATION.value -> LabelValues.DMCA_VIOLATION
+            LabelValues.NO_PROMOTE.value -> LabelValues.NO_PROMOTE
+            LabelValues.NO_UNAUTHENTICATED.value -> LabelValues.NO_UNAUTHENTICATED
+            LabelValues.WARN.value -> LabelValues.WARN
+            LabelValues.HIDE.value -> LabelValues.HIDE
             else -> null
         }
     }
