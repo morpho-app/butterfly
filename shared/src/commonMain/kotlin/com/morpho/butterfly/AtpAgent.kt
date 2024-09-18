@@ -1,7 +1,13 @@
 package com.morpho.butterfly
 
 import com.atproto.server.CreateSessionRequest
-import com.morpho.butterfly.auth.*
+import com.morpho.butterfly.auth.AuthInfo
+import com.morpho.butterfly.auth.Credentials
+import com.morpho.butterfly.auth.Server
+import com.morpho.butterfly.auth.SessionRepository
+import com.morpho.butterfly.auth.TokenStatus
+import com.morpho.butterfly.auth.UserRepository
+import com.morpho.butterfly.auth.decodeJwt
 import com.morpho.butterfly.xrpc.JWTAuthPlugin
 import com.morpho.butterfly.xrpc.XrpcBlueskyApi
 import io.ktor.client.HttpClient
@@ -15,9 +21,16 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.takeFrom
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonArray
@@ -69,13 +82,13 @@ open class AtpAgent: KoinComponent {
         get() = auth != null
 
     private val sessionTokens = MutableStateFlow(
-        if (checkTokens(auth) == TokenStatus.Valid) auth?.toTokens()
+        if (checkTokens(auth) != TokenStatus.RefreshFailed) auth?.toTokens()
         else if (userData.getUser(id) != null
-            && checkTokens(userData.getUser(id)?.auth) == TokenStatus.Valid
+            && checkTokens(userData.getUser(id)?.auth) != TokenStatus.RefreshFailed
         )
             userData.getUser(id)?.auth?.toTokens()
         else if (userData.firstUser() != null
-            && checkTokens(userData.firstUser()?.auth) == TokenStatus.Valid
+            && checkTokens(userData.firstUser()?.auth) != TokenStatus.RefreshFailed
         )
             userData.firstUser()?.auth?.toTokens()
         else null
@@ -95,7 +108,7 @@ open class AtpAgent: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.HEADERS //LogLevel.ALL
+            level = LogLevel.ALL //LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
@@ -168,7 +181,7 @@ open class AtpAgent: KoinComponent {
         while (true) {
             delay(Duration.parse("20m"))
             refreshSession()
-            delay(Duration.parse("120m"))
+            delay(Duration.parse("60m"))
         }
     }
 

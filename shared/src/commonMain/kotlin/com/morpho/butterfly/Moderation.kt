@@ -433,7 +433,6 @@ open class InterpretedLabelDefinition(
             Visibility.WARN -> LabelAction.Alert
             Visibility.IGNORE -> LabelAction.Inform
             Visibility.SHOW -> LabelAction.None
-            null -> LabelAction.None
         }
         return ContentHandling(
             id = identifier,
