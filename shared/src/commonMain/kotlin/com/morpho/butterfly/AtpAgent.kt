@@ -82,15 +82,13 @@ open class AtpAgent: KoinComponent {
         get() = auth != null
 
     private val sessionTokens = MutableStateFlow(
-        if (checkTokens(auth) != TokenStatus.RefreshFailed) auth?.toTokens()
+        if (checkTokens(auth) != TokenStatus.NoAuth) auth?.toTokens()
         else if (userData.getUser(id) != null
-            && checkTokens(userData.getUser(id)?.auth) != TokenStatus.RefreshFailed
-        )
-            userData.getUser(id)?.auth?.toTokens()
+            && checkTokens(userData.getUser(id)?.auth) != TokenStatus.NoAuth
+        ) userData.getUser(id)?.auth?.toTokens()
         else if (userData.firstUser() != null
-            && checkTokens(userData.firstUser()?.auth) != TokenStatus.RefreshFailed
-        )
-            userData.firstUser()?.auth?.toTokens()
+            && checkTokens(userData.firstUser()?.auth) != TokenStatus.NoAuth
+        ) userData.firstUser()?.auth?.toTokens()
         else null
     )
 
