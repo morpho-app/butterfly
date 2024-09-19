@@ -106,7 +106,7 @@ open class AtpAgent: KoinComponent {
 
         install(Logging) {
             logger = Logger.DEFAULT
-            level = LogLevel.ALL //LogLevel.ALL
+            level = LogLevel.INFO //LogLevel.ALL
         }
 
         install(JWTAuthPlugin) {
