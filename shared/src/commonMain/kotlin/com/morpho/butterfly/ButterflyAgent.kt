@@ -1,8 +1,51 @@
 package com.morpho.butterfly
 
-import app.bsky.actor.*
-import app.bsky.feed.*
-import app.bsky.graph.*
+import app.bsky.actor.ContentLabelPref
+import app.bsky.actor.FeedViewPref
+import app.bsky.actor.GetProfileQuery
+import app.bsky.actor.GetProfilesQuery
+import app.bsky.actor.GetSuggestionsQuery
+import app.bsky.actor.HiddenPostsPref
+import app.bsky.actor.LabelerPrefItem
+import app.bsky.actor.LabelersPref
+import app.bsky.actor.MutedWord
+import app.bsky.actor.MutedWordsPref
+import app.bsky.actor.PreferencesUnion
+import app.bsky.actor.ProfileView
+import app.bsky.actor.ProfileViewBasic
+import app.bsky.actor.ProfileViewDetailed
+import app.bsky.actor.PutPreferencesRequest
+import app.bsky.actor.SavedFeed
+import app.bsky.actor.SavedFeedsPrefV2
+import app.bsky.actor.SearchActorsQuery
+import app.bsky.actor.SearchActorsTypeaheadQuery
+import app.bsky.actor.ThreadViewPref
+import app.bsky.actor.Visibility
+import app.bsky.feed.FeedViewPost
+import app.bsky.feed.GetActorLikesQuery
+import app.bsky.feed.GetAuthorFeedFilter
+import app.bsky.feed.GetAuthorFeedQuery
+import app.bsky.feed.GetLikesLike
+import app.bsky.feed.GetLikesQuery
+import app.bsky.feed.GetPostThreadQuery
+import app.bsky.feed.GetPostThreadResponse
+import app.bsky.feed.GetPostsQuery
+import app.bsky.feed.GetQuotesQuery
+import app.bsky.feed.GetRepostedByQuery
+import app.bsky.feed.GetTimelineQuery
+import app.bsky.feed.Like
+import app.bsky.feed.PostView
+import app.bsky.feed.Repost
+import app.bsky.graph.Block
+import app.bsky.graph.Follow
+import app.bsky.graph.GetFollowersQuery
+import app.bsky.graph.GetFollowsQuery
+import app.bsky.graph.GetListQuery
+import app.bsky.graph.Listblock
+import app.bsky.graph.MuteActorListRequest
+import app.bsky.graph.MuteActorRequest
+import app.bsky.graph.UnmuteActorListRequest
+import app.bsky.graph.UnmuteActorRequest
 import app.bsky.labeler.GetServicesQuery
 import app.bsky.labeler.GetServicesResponseViewUnion
 import app.bsky.labeler.LabelerView
@@ -16,19 +59,30 @@ import com.atproto.identity.UpdateHandleRequest
 import com.atproto.moderation.CreateReportRequest
 import com.atproto.moderation.CreateReportResponse
 import com.atproto.moderation.ReportRequestSubject
-import com.atproto.repo.*
-import com.morpho.butterfly.model.*
+import com.atproto.repo.CreateRecordRequest
+import com.atproto.repo.DeleteRecordRequest
+import com.atproto.repo.GetRecordQuery
+import com.atproto.repo.PutRecordRequest
+import com.atproto.repo.StrongRef
+import com.morpho.butterfly.model.Blob
+import com.morpho.butterfly.model.RecordType
+import com.morpho.butterfly.model.RecordUnion
+import com.morpho.butterfly.model.TID
+import com.morpho.butterfly.model.Timestamp
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.lighthousegames.logging.logging
-import kotlin.collections.List
 
 
 open class ButterflyAgent: AtpAgent() {
@@ -756,9 +810,9 @@ open class ButterflyAgent: AtpAgent() {
         }
     }
 
-    private val prefsMutex = Mutex()
+    protected val prefsMutex = Mutex()
 
-    private suspend fun updatePreferences(
+    protected suspend fun updatePreferences(
         updateFun: (List<PreferencesUnion>) -> List<PreferencesUnion>?
     ): Result<List<PreferencesUnion>> = withContext(Dispatchers.IO) {
         return@withContext prefsMutex.withLock {
@@ -775,7 +829,7 @@ open class ButterflyAgent: AtpAgent() {
         }
     }
 
-    private suspend fun updateSavedFeedsV2Prefs(
+    protected suspend fun updateSavedFeedsV2Prefs(
         update: (List<SavedFeed>) -> List<SavedFeed>
     ): List<SavedFeed> = withContext(Dispatchers.IO) {
         var maybeMutatedSavedFeeds = listOf<SavedFeed>()
@@ -802,7 +856,7 @@ open class ButterflyAgent: AtpAgent() {
         return@withContext maybeMutatedSavedFeeds
     }
 
-    private suspend fun updateHiddenPost(
+    protected suspend fun updateHiddenPost(
         postUri: AtUri,
         action: HiddenPostAction
     ): Result<Unit> = withContext(Dispatchers.IO) {

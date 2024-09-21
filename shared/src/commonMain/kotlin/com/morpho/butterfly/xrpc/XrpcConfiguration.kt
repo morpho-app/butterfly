@@ -1,5 +1,6 @@
 package com.morpho.butterfly.xrpc
 
+import com.morpho.butterfly.butterflySerializersModule
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
@@ -10,6 +11,7 @@ fun HttpClient.withXrpcConfiguration(): HttpClient = config {
   val jsonEnvironment = Json {
     ignoreUnknownKeys = true
     classDiscriminator = "${'$'}type"
+    serializersModule = butterflySerializersModule
   }
 
   install(ContentNegotiation) {

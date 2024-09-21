@@ -181,6 +181,11 @@ value class Did(
             "'$did' is not a valid DID."
         }
     }
+
+    override fun orEmpty(): String {
+        return did
+    }
+
     override fun toString(): String = did
 
     companion object {
@@ -205,6 +210,11 @@ value class Handle(
             "'$handle' is not a valid handle."
         }
     }
+
+    override fun orEmpty(): String {
+        return handle
+    }
+
     override fun toString(): String = handle
 
     companion object {
@@ -219,7 +229,9 @@ value class Handle(
  */
 @Parcelize
 @Serializable(with = AtIdentifierSerializer::class)
-sealed interface AtIdentifier: Parcelable
+sealed interface AtIdentifier: Parcelable {
+    abstract fun orEmpty(): String
+}
 
 /**
  * [Namespaced Identifiers](https://atproto.com/specs/nsid) (NSIDs) are used to reference Lexicon schemas for records,

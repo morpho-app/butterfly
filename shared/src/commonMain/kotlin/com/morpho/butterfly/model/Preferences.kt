@@ -7,10 +7,11 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlin.jvm.JvmInline
 
-@Serializable
-public sealed interface PreferencesUnion {
+
+public interface PreferencesUnion {
   public class AdultContentPrefSerializer : KSerializer<AdultContentPref> by valueClassSerializer(
     serialName = "app.bsky.actor.defs#adultContentPref",
     constructor = ::AdultContentPref,
@@ -196,7 +197,16 @@ public sealed interface PreferencesUnion {
     public val `value`: app.bsky.actor.SkyFeedBuilderFeedsPref,
   ) : PreferencesUnion
 
+  @Serializable
+  @JvmInline
+  public value class UnknownPreference(
+      public val `value`: JsonElement
+  ): PreferencesUnion
+
 }
+
+
+
 
 @Serializable
 public data class SkyFeedBuilderFeedsPref(
