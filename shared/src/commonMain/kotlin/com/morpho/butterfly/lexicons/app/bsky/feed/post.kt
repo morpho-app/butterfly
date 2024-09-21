@@ -4,23 +4,14 @@ import app.bsky.richtext.Facet
 import com.morpho.butterfly.Language
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.valueClassSerializer
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface PostEmbedUnion {
-  public class ImagesViewSerializer : KSerializer<ImagesView> by valueClassSerializer(
-    serialName = "app.bsky.embed.images#view",
-    constructor = ::ImagesView,
-    valueProvider = ImagesView::value,
-    valueSerializerProvider = { app.bsky.embed.ImagesView.serializer() },
-  )
-
-  @Serializable(with = ImagesViewSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.images#view")
   public value class ImagesView(
@@ -29,42 +20,21 @@ public sealed interface PostEmbedUnion {
 
 
 
-  public class ImagesSerializer : KSerializer<Images> by valueClassSerializer(
-    serialName = "app.bsky.embed.images",
-    constructor = ::Images,
-    valueProvider = Images::value,
-    valueSerializerProvider = { app.bsky.embed.Images.serializer() },
-  )
-
-  @Serializable(with = ImagesSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.images")
   public value class Images(
     public val `value`: app.bsky.embed.Images,
   ) : PostEmbedUnion
 
-  public class VideoViewVideoSerializer : KSerializer<VideoViewVideo> by valueClassSerializer(
-    serialName = "app.bsky.embed.video#view",
-    constructor = ::VideoViewVideo,
-    valueProvider = VideoViewVideo::value,
-    valueSerializerProvider = { app.bsky.embed.VideoViewVideo.serializer() },
-  )
-
-  @Serializable(with = VideoViewVideoSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.video#view")
   public value class VideoViewVideo(
     public val `value`: app.bsky.embed.VideoViewVideo,
   ) : PostEmbedUnion
 
-  public class VideoViewSerializer : KSerializer<VideoView> by valueClassSerializer(
-    serialName = "app.bsky.embed.video",
-    constructor = ::VideoView,
-    valueProvider = VideoView::value,
-    valueSerializerProvider = { app.bsky.embed.VideoView.serializer() },
-  )
-
-  @Serializable(with = VideoViewSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.video")
   public value class VideoView(
@@ -73,42 +43,21 @@ public sealed interface PostEmbedUnion {
 
 
 
-  public class ExternalSerializer : KSerializer<External> by valueClassSerializer(
-    serialName = "app.bsky.embed.external",
-    constructor = ::External,
-    valueProvider = External::value,
-    valueSerializerProvider = { app.bsky.embed.External.serializer() },
-  )
-
-  @Serializable(with = ExternalSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.external")
   public value class External(
     public val `value`: app.bsky.embed.External,
   ) : PostEmbedUnion
 
-  public class RecordSerializer : KSerializer<Record> by valueClassSerializer(
-    serialName = "app.bsky.embed.record",
-    constructor = ::Record,
-    valueProvider = Record::value,
-    valueSerializerProvider = { app.bsky.embed.Record.serializer() },
-  )
-
-  @Serializable(with = RecordSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.record")
   public value class Record(
     public val `value`: app.bsky.embed.Record,
   ) : PostEmbedUnion
 
-  public class RecordWithMediaSerializer : KSerializer<RecordWithMedia> by valueClassSerializer(
-    serialName = "app.bsky.embed.recordWithMedia",
-    constructor = ::RecordWithMedia,
-    valueProvider = RecordWithMedia::value,
-    valueSerializerProvider = { app.bsky.embed.RecordWithMedia.serializer() },
-  )
-
-  @Serializable(with = RecordWithMediaSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.embed.recordWithMedia")
   public value class RecordWithMedia(
@@ -118,14 +67,7 @@ public sealed interface PostEmbedUnion {
 
 @Serializable
 public sealed interface PostLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
-    serialName = "com.atproto.label.defs#selfLabels",
-    constructor = ::SelfLabels,
-    valueProvider = SelfLabels::value,
-    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
-  )
-
-  @Serializable(with = SelfLabelsSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.defs#selfLabels")
   public value class SelfLabels(

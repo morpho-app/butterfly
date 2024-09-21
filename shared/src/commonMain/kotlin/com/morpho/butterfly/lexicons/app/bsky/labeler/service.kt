@@ -1,22 +1,13 @@
 package app.bsky.labeler
 
-import kotlin.jvm.JvmInline
-import kotlinx.serialization.KSerializer
+import com.morpho.butterfly.model.Timestamp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface ServiceLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
-    serialName = "com.atproto.label.defs#selfLabels",
-    constructor = ::SelfLabels,
-    valueProvider = SelfLabels::value,
-    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
-  )
-
-  @Serializable(with = SelfLabelsSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.defs#selfLabels")
   public value class SelfLabels(

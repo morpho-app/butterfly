@@ -1,41 +1,21 @@
 package com.atproto.label
 
-import kotlin.Any
-import kotlin.Long
-import kotlin.Pair
-import kotlin.String
-import kotlin.jvm.JvmInline
+import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface SubscribeLabelsMessageUnion {
-  public class LabelsSerializer : KSerializer<Labels> by valueClassSerializer(
-    serialName = "com.atproto.label.subscribeLabels#labels",
-    constructor = ::Labels,
-    valueProvider = Labels::value,
-    valueSerializerProvider = { SubscribeLabelsLabels.serializer() },
-  )
-
-  @Serializable(with = LabelsSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.subscribeLabels#labels")
   public value class Labels(
     public val `value`: SubscribeLabelsLabels,
   ) : SubscribeLabelsMessageUnion
 
-  public class InfoSerializer : KSerializer<Info> by valueClassSerializer(
-    serialName = "com.atproto.label.subscribeLabels#info",
-    constructor = ::Info,
-    valueProvider = Info::value,
-    valueSerializerProvider = { SubscribeLabelsInfo.serializer() },
-  )
-
-  @Serializable(with = InfoSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.subscribeLabels#info")
   public value class Info(

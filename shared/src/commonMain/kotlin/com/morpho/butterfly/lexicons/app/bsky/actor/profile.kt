@@ -2,8 +2,6 @@ package app.bsky.actor
 
 import com.atproto.repo.StrongRef
 import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.valueClassSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -12,14 +10,7 @@ import kotlin.jvm.JvmInline
 @Serializable
 
 public sealed interface ProfileLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
-    serialName = "com.atproto.label.defs#selfLabels",
-    constructor = ::SelfLabels,
-    valueProvider = SelfLabels::value,
-    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
-  )
-
-  @Serializable(with = SelfLabelsSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.defs#selfLabels")
   public value class SelfLabels(

@@ -1,23 +1,13 @@
 package app.bsky.feed
 
-import kotlin.jvm.JvmInline
-import kotlinx.serialization.KSerializer
+import com.morpho.butterfly.AtUri
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.AtUri
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface SkeletonFeedPostReasonUnion {
-  public class SkeletonReasonRepostSerializer : KSerializer<SkeletonReasonRepost> by
-  valueClassSerializer(
-    serialName = "app.bsky.feed.defs#skeletonReasonRepost",
-    constructor = ::SkeletonReasonRepost,
-    valueProvider = SkeletonReasonRepost::value,
-    valueSerializerProvider = { app.bsky.feed.SkeletonReasonRepost.serializer() },
-  )
-
-  @Serializable(with = SkeletonReasonRepostSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.feed.defs#skeletonReasonRepost")
   public value class SkeletonReasonRepost(

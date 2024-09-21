@@ -1,97 +1,49 @@
 package com.atproto.sync
 
-import kotlin.Any
-import kotlin.Long
-import kotlin.Pair
-import kotlin.String
-import kotlin.jvm.JvmInline
+import com.morpho.butterfly.model.ReadOnlyList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface SubscribeReposMessageUnion {
-  public class CommitSerializer : KSerializer<Commit> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#commit",
-    constructor = ::Commit,
-    valueProvider = Commit::value,
-    valueSerializerProvider = { SubscribeReposCommit.serializer() },
-  )
-
-  @Serializable(with = CommitSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#commit")
   public value class Commit(
     public val `value`: SubscribeReposCommit,
   ) : SubscribeReposMessageUnion
 
-  public class IdentitySerializer : KSerializer<Identity> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#identity",
-    constructor = ::Identity,
-    valueProvider = Identity::value,
-    valueSerializerProvider = { SubscribeReposIdentity.serializer() },
-  )
-
-  @Serializable(with = IdentitySerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#identity")
   public value class Identity(
     public val `value`: SubscribeReposIdentity,
   ) : SubscribeReposMessageUnion
 
-  public class HandleSerializer : KSerializer<Handle> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#handle",
-    constructor = ::Handle,
-    valueProvider = Handle::value,
-    valueSerializerProvider = { SubscribeReposHandle.serializer() },
-  )
-
-  @Serializable(with = HandleSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#handle")
   public value class Handle(
     public val `value`: SubscribeReposHandle,
   ) : SubscribeReposMessageUnion
 
-  public class MigrateSerializer : KSerializer<Migrate> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#migrate",
-    constructor = ::Migrate,
-    valueProvider = Migrate::value,
-    valueSerializerProvider = { SubscribeReposMigrate.serializer() },
-  )
-
-  @Serializable(with = MigrateSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#migrate")
   public value class Migrate(
     public val `value`: SubscribeReposMigrate,
   ) : SubscribeReposMessageUnion
 
-  public class TombstoneSerializer : KSerializer<Tombstone> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#tombstone",
-    constructor = ::Tombstone,
-    valueProvider = Tombstone::value,
-    valueSerializerProvider = { SubscribeReposTombstone.serializer() },
-  )
-
-  @Serializable(with = TombstoneSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#tombstone")
   public value class Tombstone(
     public val `value`: SubscribeReposTombstone,
   ) : SubscribeReposMessageUnion
 
-  public class InfoSerializer : KSerializer<Info> by valueClassSerializer(
-    serialName = "com.atproto.sync.subscribeRepos#info",
-    constructor = ::Info,
-    valueProvider = Info::value,
-    valueSerializerProvider = { SubscribeReposInfo.serializer() },
-  )
-
-  @Serializable(with = InfoSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.sync.subscribeRepos#info")
   public value class Info(

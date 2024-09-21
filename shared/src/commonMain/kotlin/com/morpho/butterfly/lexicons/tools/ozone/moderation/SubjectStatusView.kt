@@ -2,44 +2,25 @@ package tools.ozone.moderation
 
 import com.atproto.admin.RepoRef
 import com.atproto.repo.StrongRef
-import kotlin.Boolean
-import kotlin.Long
-import kotlin.String
-import kotlin.jvm.JvmInline
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.ReadOnlyList
 import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.valueClassSerializer
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface SubjectStatusViewSubjectUnion {
-  public class AdminRepoRefSerializer : KSerializer<AdminRepoRef> by valueClassSerializer(
-    serialName = "com.atproto.admin.defs#repoRef",
-    constructor = ::AdminRepoRef,
-    valueProvider = AdminRepoRef::value,
-    valueSerializerProvider = { RepoRef.serializer() },
-  )
-
-  @Serializable(with = AdminRepoRefSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.admin.defs#repoRef")
   public value class AdminRepoRef(
     public val `value`: RepoRef,
   ) : SubjectStatusViewSubjectUnion
 
-  public class RepoStrongRefSerializer : KSerializer<RepoStrongRef> by valueClassSerializer(
-    serialName = "com.atproto.repo.strongRef",
-    constructor = ::RepoStrongRef,
-    valueProvider = RepoStrongRef::value,
-    valueSerializerProvider = { StrongRef.serializer() },
-  )
-
-  @Serializable(with = RepoStrongRefSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.repo.strongRef")
   public value class RepoStrongRef(

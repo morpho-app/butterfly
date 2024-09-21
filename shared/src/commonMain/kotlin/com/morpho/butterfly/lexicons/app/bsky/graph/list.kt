@@ -1,27 +1,17 @@
 package app.bsky.graph
 
 import app.bsky.richtext.Facet
-import kotlin.String
-import kotlin.jvm.JvmInline
+import com.morpho.butterfly.model.ReadOnlyList
+import com.morpho.butterfly.model.Timestamp
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.model.Timestamp
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface ListLabelsUnion {
-  public class SelfLabelsSerializer : KSerializer<SelfLabels> by valueClassSerializer(
-    serialName = "com.atproto.label.defs#selfLabels",
-    constructor = ::SelfLabels,
-    valueProvider = SelfLabels::value,
-    valueSerializerProvider = { com.atproto.label.SelfLabels.serializer() },
-  )
-
-  @Serializable(with = SelfLabelsSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("com.atproto.label.defs#selfLabels")
   public value class SelfLabels(

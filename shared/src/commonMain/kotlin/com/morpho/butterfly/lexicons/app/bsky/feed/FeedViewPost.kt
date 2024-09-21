@@ -1,21 +1,12 @@
 package app.bsky.feed
 
-import kotlin.jvm.JvmInline
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.morpho.butterfly.valueClassSerializer
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface FeedViewPostReasonUnion {
-  public class ReasonRepostSerializer : KSerializer<ReasonRepost> by valueClassSerializer(
-    serialName = "app.bsky.feed.defs#reasonRepost",
-    constructor = ::ReasonRepost,
-    valueProvider = ReasonRepost::value,
-    valueSerializerProvider = { app.bsky.feed.ReasonRepost.serializer() },
-  )
-
-  @Serializable(with = ReasonRepostSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.feed.defs#reasonRepost")
   public value class ReasonRepost(

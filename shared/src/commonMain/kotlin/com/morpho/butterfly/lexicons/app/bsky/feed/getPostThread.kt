@@ -4,10 +4,8 @@ import app.bsky.graph.ListViewBasic
 import com.morpho.butterfly.AtUri
 import com.morpho.butterfly.Cid
 import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -15,42 +13,21 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface GetPostThreadResponseThreadUnion {
-  public class ThreadViewPostSerializer : KSerializer<ThreadViewPost> by valueClassSerializer(
-    serialName = "app.bsky.feed.defs#threadViewPost",
-    constructor = ::ThreadViewPost,
-    valueProvider = ThreadViewPost::value,
-    valueSerializerProvider = { app.bsky.feed.ThreadViewPost.serializer() },
-  )
-
-  @Serializable(with = ThreadViewPostSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.feed.defs#threadViewPost")
   public value class ThreadViewPost(
     public val `value`: app.bsky.feed.ThreadViewPost,
   ) : GetPostThreadResponseThreadUnion
 
-  public class NotFoundPostSerializer : KSerializer<NotFoundPost> by valueClassSerializer(
-    serialName = "app.bsky.feed.defs#notFoundPost",
-    constructor = ::NotFoundPost,
-    valueProvider = NotFoundPost::value,
-    valueSerializerProvider = { app.bsky.feed.NotFoundPost.serializer() },
-  )
-
-  @Serializable(with = NotFoundPostSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.feed.defs#notFoundPost")
   public value class NotFoundPost(
     public val `value`: app.bsky.feed.NotFoundPost,
   ) : GetPostThreadResponseThreadUnion
 
-  public class BlockedPostSerializer : KSerializer<BlockedPost> by valueClassSerializer(
-    serialName = "app.bsky.feed.defs#blockedPost",
-    constructor = ::BlockedPost,
-    valueProvider = BlockedPost::value,
-    valueSerializerProvider = { app.bsky.feed.BlockedPost.serializer() },
-  )
-
-  @Serializable(with = BlockedPostSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.feed.defs#blockedPost")
   public value class BlockedPost(

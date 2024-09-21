@@ -1,43 +1,24 @@
 package app.bsky.graph
 
-import kotlin.Any
-import kotlin.Pair
-import kotlin.String
-import kotlin.jvm.JvmInline
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import com.morpho.butterfly.AtIdentifier
 import com.morpho.butterfly.Did
 import com.morpho.butterfly.model.ReadOnlyList
-import com.morpho.butterfly.valueClassSerializer
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 public sealed interface GetRelationshipsResponseRelationshipUnion {
-  public class RelationshipSerializer : KSerializer<Relationship> by valueClassSerializer(
-    serialName = "app.bsky.graph.defs#relationship",
-    constructor = ::Relationship,
-    valueProvider = Relationship::value,
-    valueSerializerProvider = { app.bsky.graph.Relationship.serializer() },
-  )
-
-  @Serializable(with = RelationshipSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.graph.defs#relationship")
   public value class Relationship(
     public val `value`: app.bsky.graph.Relationship,
   ) : GetRelationshipsResponseRelationshipUnion
 
-  public class NotFoundActorSerializer : KSerializer<NotFoundActor> by valueClassSerializer(
-    serialName = "app.bsky.graph.defs#notFoundActor",
-    constructor = ::NotFoundActor,
-    valueProvider = NotFoundActor::value,
-    valueSerializerProvider = { app.bsky.graph.NotFoundActor.serializer() },
-  )
-
-  @Serializable(with = NotFoundActorSerializer::class)
+  @Serializable
   @JvmInline
   @SerialName("app.bsky.graph.defs#notFoundActor")
   public value class NotFoundActor(
