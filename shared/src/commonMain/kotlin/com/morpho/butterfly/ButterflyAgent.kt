@@ -87,10 +87,10 @@ import org.lighthousegames.logging.logging
 
 open class ButterflyAgent: AtpAgent() {
     var prefs: BskyPreferences = BskyPreferences()
-        private set
+        protected set
 
     var labelers: List<Did> = emptyList()
-        private set
+        protected set
 
     val appLabelers: List<Did> = listOf(BSKY_LABELER_DID)
 

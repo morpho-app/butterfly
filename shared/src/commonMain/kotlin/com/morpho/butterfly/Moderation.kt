@@ -1,9 +1,9 @@
 package com.morpho.butterfly
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HideImage
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -78,7 +78,7 @@ sealed interface LabelIcon {
         override val labelerAvatar: String? = null
     ): LabelIcon {
         override val icon: ImageVector
-            get() = Icons.Default.HideImage
+            get() = Icons.Default.VisibilityOff
     }
 
     @Serializable
@@ -463,6 +463,20 @@ val LABELS: PersistentMap<LabelValues, InterpretedLabelDefinition> = persistentM
     LabelValues.GRAPHIC_MEDIA to GraphicMedia,
 )
 
+fun InterpretedLabelDefinition.localize(language: Language): InterpretedLabelDefinition {
+    val localizedDefString = this.allDescriptions.firstOrNull { it.lang == language }
+        ?: this.allDescriptions.firstOrNull { it.lang.tag == "en" }
+        ?: this.allDescriptions.firstOrNull()
+        ?: LabelValueDefinitionStrings(
+            Language("en"),
+            "error",
+            "error",
+        )
+    return this.copy(
+        localizedName = localizedDefString.name,
+        localizedDescription = localizedDefString.description,
+    )
+}
 
 @Immutable
 @Serializable

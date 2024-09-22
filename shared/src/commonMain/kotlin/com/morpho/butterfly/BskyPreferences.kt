@@ -1,6 +1,7 @@
 package com.morpho.butterfly
 
 import app.bsky.actor.ContentLabelPref
+import app.bsky.actor.FeedType
 import app.bsky.actor.FeedViewPref
 import app.bsky.actor.GetPreferencesResponse
 import app.bsky.actor.MutedWord
@@ -61,8 +62,11 @@ fun GetPreferencesResponse.toPreferences() : BskyPreferences {
             is PreferencesUnion.LabelersPref -> labelers.addAll(pref.value.labelers.map { it.did })
             is PreferencesUnion.MutedWordsPref -> newModPrefs = newModPrefs.copy(mutedWords = pref.value.items)
             is PreferencesUnion.PersonalDetailsPref -> newPrefs = newPrefs.copy(personalDetails = pref.value)
-            is PreferencesUnion.SavedFeedsPref -> newPrefs = newPrefs.copy(savedFeeds = pref.value, timelineIndex = pref.value.timelineIndex)
-            is PreferencesUnion.SavedFeedsPrefV2 -> newPrefs = newPrefs.copy(saved = pref.value.items)
+            is PreferencesUnion.SavedFeedsPref -> newPrefs = newPrefs.copy(savedFeeds = pref.value)
+            is PreferencesUnion.SavedFeedsPrefV2 -> {
+                val timelineIndex = pref.value.items.indexOfFirst { it.type == FeedType.TIMELINE }
+                newPrefs = newPrefs.copy(saved = pref.value.items, timelineIndex = maxOf(0, timelineIndex))
+            }
             is PreferencesUnion.SkyFeedBuilderFeedsPref -> newPrefs = newPrefs.copy(skyFeedBuilderFeeds = pref.value.feeds)
             is PreferencesUnion.ThreadViewPref -> newPrefs = newPrefs.copy(threadPrefs = pref.value)
         }

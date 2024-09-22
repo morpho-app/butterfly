@@ -51,7 +51,7 @@ open class AtpAgent: KoinComponent {
         val log = logging("AtpAgent")
     }
 
-    private var refreshService: Job? = null
+    protected var refreshService: Job? = null
 
     var id: Did? = null
         get() = session.auth?.did
@@ -60,10 +60,10 @@ open class AtpAgent: KoinComponent {
     val server: Server
         get() = userData.getUser(id)?.server ?: Server.BlueskySocial
 
-    private val auth: AuthInfo?
+    protected val auth: AuthInfo?
         get() = session.auth ?: userData.getUser(id)?.auth ?: userData.firstUser()?.auth
 
-    private suspend fun setAuth(auth: AuthInfo?) {
+    protected suspend fun setAuth(auth: AuthInfo?) {
         session.auth = auth
         if (auth != null) {
             id = auth.did
@@ -81,7 +81,7 @@ open class AtpAgent: KoinComponent {
     val isLoggedIn: Boolean
         get() = auth != null
 
-    private val sessionTokens = MutableStateFlow(
+    protected val sessionTokens = MutableStateFlow(
         if (checkTokens(auth) != TokenStatus.NoAuth) auth?.toTokens()
         else if (userData.getUser(id) != null
             && checkTokens(userData.getUser(id)?.auth) != TokenStatus.NoAuth
@@ -92,14 +92,14 @@ open class AtpAgent: KoinComponent {
         else null
     )
 
-    private fun AuthInfo.toTokens() = BearerTokens(accessJwt, refreshJwt)
+    protected fun AuthInfo.toTokens() = BearerTokens(accessJwt, refreshJwt)
 
-    private fun AuthInfo.withTokens(tokens: BearerTokens) = copy(
+    protected fun AuthInfo.withTokens(tokens: BearerTokens) = copy(
         accessJwt = tokens.accessToken,
         refreshJwt = tokens.refreshToken,
     )
 
-    private var atpClient = HttpClient(CIO) {
+    protected var atpClient = HttpClient(CIO) {
         engine {
             pipelining = false
         }
@@ -132,7 +132,7 @@ open class AtpAgent: KoinComponent {
     }
 
 
-    private fun checkTokens(auth: AuthInfo?): TokenStatus {
+    protected fun checkTokens(auth: AuthInfo?): TokenStatus {
         if (auth == null) return TokenStatus.NoAuth
         val decoded = decodeJwt(auth.accessJwt)
         Butterfly.log.v { "Decoded auth: $decoded" }
@@ -153,10 +153,10 @@ open class AtpAgent: KoinComponent {
         return TokenStatus.Valid
     }
 
-    var api: BlueskyApi = XrpcBlueskyApi(atpClient)
+    open var api: BlueskyApi = XrpcBlueskyApi(atpClient)
 
 
-    private fun refreshSession() = serviceScope.launch {
+    protected fun refreshSession() = serviceScope.launch {
         if (auth == null) return@launch
         api.refreshSession().onFailure {
             Butterfly.log.e { "Failed to refresh session: $it" }
@@ -175,7 +175,7 @@ open class AtpAgent: KoinComponent {
         }
     }
 
-    private fun sessionRefresh() = serviceScope.launch {
+    protected fun sessionRefresh() = serviceScope.launch {
         while (true) {
             delay(Duration.parse("20m"))
             refreshSession()
@@ -184,7 +184,16 @@ open class AtpAgent: KoinComponent {
     }
 
     init {
+        // Reset this here, because of funny business in derived classes
+        // See:
+        // https://discuss.kotlinlang.org/t/npes-when-overriding-vals-but-not-in-constructor-init-block/20888/2
+        // When a derived class overrides `api`, it will be null during this init block.
+        // We VERY much need it to be valid to do the refresh, etc.
+        //
+        // Setting it explicitly here works around that.
+        XrpcBlueskyApi(atpClient).also { this.api = it }
         serviceScope.launch {
+
             when (checkTokens(auth)) {
                 TokenStatus.Valid -> resumeSession()
                 TokenStatus.AccessExpired -> {
@@ -197,7 +206,7 @@ open class AtpAgent: KoinComponent {
         }
     }
 
-    private fun extractServer(didDoc: JsonElement?, defaultServer: Server = Server.BlueskySocial): Server {
+    protected fun extractServer(didDoc: JsonElement?, defaultServer: Server = Server.BlueskySocial): Server {
         return if (didDoc != null) {
             val service =
                 didDoc.jsonObject["service"]?.jsonArray?.get(0)?.jsonObject?.get("serviceEndpoint")?.jsonPrimitive?.content
@@ -207,7 +216,7 @@ open class AtpAgent: KoinComponent {
         } else defaultServer
     }
 
-    private suspend fun resumeSession() = withContext(Dispatchers.IO) {
+    protected suspend fun resumeSession() = withContext(Dispatchers.IO) {
         setAuth(auth)
         Butterfly.log.d { "Startup auth:\n$auth" }
         Butterfly.log.d { "User ID: $id" }
