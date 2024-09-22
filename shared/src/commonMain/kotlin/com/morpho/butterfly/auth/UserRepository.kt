@@ -6,11 +6,17 @@ import io.github.xxfast.kstore.KStore
 import io.github.xxfast.kstore.extensions.getOrEmpty
 import io.github.xxfast.kstore.extensions.minus
 import io.github.xxfast.kstore.extensions.plus
+import io.github.xxfast.kstore.extensions.updatesOrEmpty
 import io.github.xxfast.kstore.file.extensions.listStoreOf
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import okio.Path.Companion.toPath
 
@@ -33,8 +39,8 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
         file = "$storageDir/users.json".toPath(),
         enableCache = true
     )
-    private val _users: Flow<List<AtpUser>?>
-        get() = _userStore.updates.distinctUntilChanged()
+    private val _users: Flow<List<AtpUser>>
+        get() = _userStore.updatesOrEmpty.distinctUntilChanged()
 
     override fun firstUser(): AtpUser? = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty().firstOrNull() }
 

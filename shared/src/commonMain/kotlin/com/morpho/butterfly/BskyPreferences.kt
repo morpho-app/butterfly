@@ -19,6 +19,7 @@ public data class BskyPreferences(
     val feedView: FeedViewPref? = null,
     val saved: List<SavedFeed> = emptyList(),
     val personalDetails: PersonalDetailsPref? = null,
+    val labelers: List<Did> = emptyList(),
     val modPrefs: ModerationPreferences = ModerationPreferences(),
     val threadPrefs: ThreadViewPref? = null,
     val interests: List<String> = emptyList(),
@@ -69,6 +70,9 @@ fun GetPreferencesResponse.toPreferences() : BskyPreferences {
             }
             is PreferencesUnion.SkyFeedBuilderFeedsPref -> newPrefs = newPrefs.copy(skyFeedBuilderFeeds = pref.value.feeds)
             is PreferencesUnion.ThreadViewPref -> newPrefs = newPrefs.copy(threadPrefs = pref.value)
+            else -> {
+
+            }
         }
     }
     for (pref in labelPrefs) {
@@ -85,7 +89,7 @@ fun GetPreferencesResponse.toPreferences() : BskyPreferences {
         }
     }
     newModPrefs = newModPrefs.copy(labelers = labelMap.mapValues { it.value.toMap() })
-    return newPrefs.copy(modPrefs = newModPrefs)
+    return newPrefs.copy(modPrefs = newModPrefs, labelers = labelers)
 }
 
 fun ContentLabelPref.isLegacyLabel(): Boolean {

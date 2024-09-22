@@ -152,8 +152,8 @@ open class ButterflyAgent: AtpAgent() {
                 )
             }
         }
-        Butterfly.log.d {"Record request: $request"}
-        return api.createRecord(request).onFailure { Butterfly.log.e { "Failed to create record: $it" } }
+        log.d {"Record request: $request"}
+        return api.createRecord(request).onFailure { log.e { "Failed to create record: $it" } }
             .map { StrongRef(it.uri, it.cid) }
     }
 
@@ -177,7 +177,7 @@ open class ButterflyAgent: AtpAgent() {
 
     suspend fun deleteRecord(type: RecordType, rkey: String): Result<Unit> {
         if (id == null) return Result.failure(Error("Not logged in"))
-        Butterfly.log.v { "Deleting record $rkey of type $type" }
+        log.v { "Deleting record $rkey of type $type" }
         return api.deleteRecord(DeleteRecordRequest(id!!, type.collection, rkey))
     }
 
@@ -816,15 +816,18 @@ open class ButterflyAgent: AtpAgent() {
         updateFun: (List<PreferencesUnion>) -> List<PreferencesUnion>?
     ): Result<List<PreferencesUnion>> = withContext(Dispatchers.IO) {
         return@withContext prefsMutex.withLock {
-            val prefs = api.getPreferences().map {
-                it.preferences
+            val prefs = api.getPreferences().map { response ->
+                // Uncomment this line if there are incorrect keys in the prefs
+                // that you put there by mistake
+                // It should clean up the prefs that are not recognized by the server
+                response.preferences //.filter { it !is PreferencesUnion.UnknownPreference }
             }.onFailure {
                 return@withLock Result.failure(Error("Failed to get preferences: $it"))
             }.getOrNull() ?: return@withLock Result.failure(Error("Preferences not found"))
             val newPrefs = updateFun(prefs) ?: return@withLock Result.success(prefs)
             api.putPreferences(PutPreferencesRequest(newPrefs.toPersistentList())).onFailure {
                 return@withLock Result.failure(Error("Failed to update preferences: $it"))
-            }.getOrNull() ?: return@withLock Result.failure(Error("Preferences not found"))
+            }.getOrNull() ?: return@withLock Result.failure(Error("Preferences not sent"))
             return@withLock Result.success(prefs)
         }
     }

@@ -8,13 +8,13 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-//@SerialName("app.bsky.actor.defs#mutedWordsPref")
+@SerialName("app.bsky.actor.defs#mutedWordsPref")
 public data class MutedWordsPref(
     public val items: ReadOnlyList<MutedWord>
 )
 
 @Serializable
-//@SerialName("app.bsky.actor.defs#mutedWord")
+@SerialName("app.bsky.actor.defs#mutedWord")
 public data class MutedWord(
     public val value: String,
     public val targets: ReadOnlyList<MutedWordTarget>,

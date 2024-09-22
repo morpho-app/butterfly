@@ -28,6 +28,8 @@ val butterflySerializersModule = SerializersModule {
         subclass(PreferencesUnion.HiddenPostsPref::class)
         subclass(PreferencesUnion.MutedWordsPref::class)
         subclass(PreferencesUnion.InterestsPref::class)
+        subclass(PreferencesUnion.ButterflyPreference::class)
+        subclass(PreferencesUnion.UnknownPreference::class)
         defaultDeserializer { _ ->
             PreferencesUnion.UnknownPreference::class.serializer()
         }

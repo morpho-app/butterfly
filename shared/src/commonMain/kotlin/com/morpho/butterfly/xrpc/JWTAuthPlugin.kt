@@ -19,6 +19,7 @@ import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.json.Json
+import org.lighthousegames.logging.logging
 
 class JWTAuthPlugin(
     private val json: Json,
@@ -31,6 +32,9 @@ class JWTAuthPlugin(
 
     companion object : HttpClientPlugin<Config, JWTAuthPlugin> {
         override val key = AttributeKey<JWTAuthPlugin>("JWTAuthPlugin")
+        val log = logging("JWTAuthPlugin")
+
+        private var justTriedARefresh = false
 
         override fun prepare(block: Config.() -> Unit): JWTAuthPlugin {
             val config = Config().apply(block)
@@ -61,13 +65,27 @@ class JWTAuthPlugin(
                     plugin.json.decodeFromString(result.response.bodyAsText())
                 }
 
+
                 if (response.getOrNull()?.error?.contains("ExpiredToken") == true
                     || response.getOrNull()?.error?.contains("InvalidToken") == true
                 ) {
+
+                    log.e {
+                        "Error about to lead to a refresh:\n${response}"
+                    }
+                    log.e {
+                        "Tokens:\n${plugin.authTokens.value?.accessToken}\n${plugin.authTokens.value?.refreshToken}"
+                    }
+                    if(justTriedARefresh) {
+                        return@intercept result
+                    }
                     val refreshResponse = scope.post("/xrpc/com.atproto.server.refreshSession") {
                         this.bearerAuth(plugin.authTokens.value?.refreshToken ?: "")
                     }
-                    runCatching { refreshResponse.body<RefreshSessionResponse>() }.getOrNull()?.let { refreshed ->
+                    runCatching { refreshResponse.body<RefreshSessionResponse>() }.onFailure {
+                        justTriedARefresh = true
+                        log.e { "Failed to refresh session: $it" }
+                    }.getOrNull()?.let { refreshed ->
                         val newAccessToken = refreshed.accessJwt
                         val newRefreshToken = refreshed.refreshJwt
 
@@ -76,6 +94,11 @@ class JWTAuthPlugin(
                         context.headers.remove(Authorization)
                         context.bearerAuth(newAccessToken)
                         result = execute(context)
+                        justTriedARefresh = false
+                    }
+                } else {
+                    log.e {
+                        "Error:\n${result.response}"
                     }
                 }
 

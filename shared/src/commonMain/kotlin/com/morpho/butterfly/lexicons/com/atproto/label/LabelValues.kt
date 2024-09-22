@@ -33,6 +33,8 @@ public enum class DefaultSetting {
   HIDE,
   @SerialName("show")
   SHOW,
+  @SerialName("inform")
+  INFORM,
 }
 
 fun DefaultSetting.toVisibility(): Visibility {
@@ -41,6 +43,7 @@ fun DefaultSetting.toVisibility(): Visibility {
     DefaultSetting.WARN -> Visibility.WARN
     DefaultSetting.HIDE -> Visibility.HIDE
     DefaultSetting.SHOW -> Visibility.SHOW
+    DefaultSetting.INFORM -> Visibility.INFORM
   }
 }
 

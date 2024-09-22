@@ -2,9 +2,11 @@
 
 package app.bsky.actor
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("app.bsky.actor.defs#feedViewPref")
 public data class FeedViewPref(
   /**
    * The URI of the feed, or an identifier which describes the feed.

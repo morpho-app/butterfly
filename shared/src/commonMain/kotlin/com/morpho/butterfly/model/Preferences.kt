@@ -8,8 +8,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlin.jvm.JvmInline
 
-
-public interface PreferencesUnion {
+@Serializable
+public sealed interface PreferencesUnion {
   @Serializable
   @JvmInline
   @SerialName("app.bsky.actor.defs#adultContentPref")
@@ -111,9 +111,11 @@ public interface PreferencesUnion {
 
   @Serializable
   @JvmInline
-  public value class UnknownPreference(
-      public val `value`: JsonElement
-  ): PreferencesUnion
+  public value class UnknownPreference(public val `value`: JsonElement): PreferencesUnion
+
+  @Serializable
+  @SerialName("app.bsky.actor.defs#butterflyPreference")
+  public open class ButterflyPreference: PreferencesUnion
 
 }
 
@@ -121,6 +123,7 @@ public interface PreferencesUnion {
 
 
 @Serializable
+@SerialName("app.bsky.actor.defs#skyfeedBuilderFeedsPref")
 public data class SkyFeedBuilderFeedsPref(
   /**
    * List of feeds
@@ -129,13 +132,14 @@ public data class SkyFeedBuilderFeedsPref(
 )
 
 @Serializable
+@SerialName("app.bsky.actor.defs#bskyAppStatePref")
 public data class BskyAppStatePref(
   public val activeProgressGuide: BskyAppProgressGuide? = null,
   public val queuedNudges: ReadOnlyList<String> = persistentListOf(),
 )
 
 @Serializable
-@SerialName("bskyAppProgressGuide")
+@SerialName("app.bsky.actor.defs#bskyAppProgressGuide")
 public data class BskyAppProgressGuide(
   public val guide: String
 )

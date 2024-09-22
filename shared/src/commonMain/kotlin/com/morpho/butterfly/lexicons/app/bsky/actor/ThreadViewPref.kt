@@ -1,9 +1,10 @@
 package app.bsky.actor
 
-import kotlin.Boolean
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("app.bsky.actor.defs#threadViewPref")
 public data class ThreadViewPref(
   /**
    * Sorting mode.

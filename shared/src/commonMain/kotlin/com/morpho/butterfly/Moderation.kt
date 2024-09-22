@@ -12,11 +12,11 @@ import app.bsky.actor.Visibility
 import app.bsky.graph.ListViewBasic
 import app.bsky.labeler.LabelerViewDetailed
 import com.atproto.label.Blurs
-import com.atproto.label.DefaultSetting
 import com.atproto.label.LabelValueDefinition
 import com.atproto.label.LabelValueDefinitionStrings
 import com.atproto.label.LabelValues
 import com.atproto.label.Severity
+import com.atproto.label.toVisibility
 import com.morpho.butterfly.model.Timestamp
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
@@ -396,13 +396,7 @@ open class InterpretedLabelDefinition(
                         contentView = alertOrInform,
                     ))
             }
-            val setting = when(def.defaultSetting) {
-                DefaultSetting.HIDE -> Visibility.HIDE
-                DefaultSetting.IGNORE -> Visibility.IGNORE
-                DefaultSetting.WARN -> Visibility.WARN
-                DefaultSetting.SHOW -> Visibility.SHOW
-                null -> Visibility.IGNORE
-            }
+            val setting = def.defaultSetting?.toVisibility() ?: Visibility.IGNORE
             val flags = mutableListOf<LabelValueDefFlag>(LabelValueDefFlag.NoSelf)
             if(def.adultOnly == true) flags.add(LabelValueDefFlag.Adult)
             return InterpretedLabelDefinition(
@@ -431,8 +425,9 @@ open class InterpretedLabelDefinition(
         val action = behaviours.forScope(whatToHide, target).minOrNull() ?: when(defaultSetting) {
             Visibility.HIDE -> LabelAction.Blur
             Visibility.WARN -> LabelAction.Alert
-            Visibility.IGNORE -> LabelAction.Inform
+            Visibility.INFORM -> LabelAction.Inform
             Visibility.SHOW -> LabelAction.None
+            Visibility.IGNORE -> LabelAction.None
         }
         return ContentHandling(
             id = identifier,
@@ -544,6 +539,13 @@ data object Warn: InterpretedLabelDefinition(
     ),
     localizedName = "Warn",
     localizedDescription = "Warn",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Warn",
+            "Warn",
+        ),
+    ),
 )
 
 
@@ -579,6 +581,13 @@ data object NoUnauthed: InterpretedLabelDefinition(
     ),
     localizedName = "No Unauthenticated",
     localizedDescription = "Do not show to unauthenticated users",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "No Unauthenticated",
+            "Do not show to unauthenticated users",
+        ),
+    ),
 )
 
 
@@ -607,6 +616,13 @@ data object Porn: InterpretedLabelDefinition(
     ),
     localizedName = "Sexually Explicit",
     localizedDescription = "This content is sexually explicit",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Sexually Explicit",
+            "This content is sexually explicit",
+        ),
+    ),
 )
 
 
@@ -635,7 +651,49 @@ data object Sexual: InterpretedLabelDefinition(
     ),
     localizedName = "Suggestive",
     localizedDescription = "This content may be suggestive or sexual in nature",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Suggestive",
+            "This content may be suggestive or sexual in nature",
+        ),
+    ),
 )
+
+@Immutable
+@Serializable
+data object NSFW: InterpretedLabelDefinition(
+    "nsfw",
+    definedBy = null,
+    true,
+    Severity.NONE,
+    Blurs.MEDIA,
+    Visibility.HIDE,
+    persistentListOf(LabelValueDefFlag.Adult),
+    ModBehaviours(
+        account = ModBehaviour(
+            avatar = LabelAction.Blur,
+            banner = LabelAction.Blur,
+        ),
+        profile = ModBehaviour(
+            avatar = LabelAction.Blur,
+            banner = LabelAction.Blur,
+        ),
+        content = ModBehaviour(
+            contentMedia = LabelAction.Blur,
+        ),
+    ),
+    localizedName = "Sexually Suggestive",
+    localizedDescription = "Suggestive content which does not contain nudity",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Sexually Suggestive",
+            "Suggestive content which does not contain nudity",
+        ),
+    ),
+)
+
 
 
 @Immutable
@@ -663,6 +721,13 @@ data object Nudity: InterpretedLabelDefinition(
     ),
     localizedName = "Nudity",
     localizedDescription = "This content contains nudity, artistic or otherwise",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Nudity",
+            "This content contains nudity, artistic or otherwise",
+        ),
+    ),
 )
 
 
@@ -691,6 +756,13 @@ data object GraphicMedia: InterpretedLabelDefinition(
     ),
     localizedName = "Graphic Content",
     localizedDescription = "This content is graphic or violent in nature",
+    allDescriptions = listOf(
+        LabelValueDefinitionStrings(
+            Language("en"),
+            "Graphic Content",
+            "This content is graphic or violent in nature",
+        ),
+    ),
 )
 
 @OptIn(ExperimentalSerializationApi::class)

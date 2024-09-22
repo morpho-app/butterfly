@@ -7,6 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("app.bsky.actor.defs#savedFeedsPref")
 public data class SavedFeedsPref(
   public val pinned: ReadOnlyList<AtUri>,
   public val saved: ReadOnlyList<AtUri>,
@@ -14,6 +15,7 @@ public data class SavedFeedsPref(
 )
 
 @Serializable
+@SerialName("app.bsky.actor.defs#savedFeedsPrefV2")
 public data class SavedFeedsPrefV2(
   public val items: ReadOnlyList<SavedFeed>,
 )

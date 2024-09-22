@@ -135,19 +135,19 @@ open class AtpAgent: KoinComponent {
     protected fun checkTokens(auth: AuthInfo?): TokenStatus {
         if (auth == null) return TokenStatus.NoAuth
         val decoded = decodeJwt(auth.accessJwt)
-        Butterfly.log.v { "Decoded auth: $decoded" }
-        Butterfly.log.d { "Time: ${Clock.System.now()}" }
-        Butterfly.log.d { "Expiry: ${decoded?.expiresAt}" }
+        log.v { "Decoded auth: $decoded" }
+        log.d { "Time: ${Clock.System.now()}" }
+        log.d { "Expiry: ${decoded?.expiresAt}" }
         if (decoded?.expiresAt != null && decoded.expiresAt < Clock.System.now()) {
             val refreshDecoded = decodeJwt(auth.refreshJwt)
-            Butterfly.log.v { "Refresh decoded: $refreshDecoded" }
-            Butterfly.log.d { "Refresh expiry: ${refreshDecoded?.expiresAt}" }
+            log.v { "Refresh decoded: $refreshDecoded" }
+            log.d { "Refresh expiry: ${refreshDecoded?.expiresAt}" }
             if (refreshDecoded?.expiresAt != null && refreshDecoded.expiresAt < Clock.System.now()) {
-                Butterfly.log.d { "Refresh token expired at ${refreshDecoded.expiresAt}" }
-                Butterfly.log.d { "Kicking to login screen" }
+                log.d { "Refresh token expired at ${refreshDecoded.expiresAt}" }
+                log.d { "Kicking to login screen" }
                 return TokenStatus.RefreshFailed
             }
-            Butterfly.log.d { "Access token expired at ${decoded.expiresAt}" }
+            log.d { "Access token expired at ${decoded.expiresAt}" }
             return TokenStatus.AccessExpired
         }
         return TokenStatus.Valid
@@ -159,7 +159,7 @@ open class AtpAgent: KoinComponent {
     protected fun refreshSession() = serviceScope.launch {
         if (auth == null) return@launch
         api.refreshSession().onFailure {
-            Butterfly.log.e { "Failed to refresh session: $it" }
+            log.e { "Failed to refresh session: $it" }
             setAuth(null)
         }.onSuccess { response ->
             val newAuth = if (response.did != auth?.did) {
@@ -218,9 +218,9 @@ open class AtpAgent: KoinComponent {
 
     protected suspend fun resumeSession() = withContext(Dispatchers.IO) {
         setAuth(auth)
-        Butterfly.log.d { "Startup auth:\n$auth" }
-        Butterfly.log.d { "User ID: $id" }
-        Butterfly.log.v { "User:\n${userData.getUser(id)}" }
+        log.d { "Startup auth:\n$auth" }
+        log.d { "User ID: $id" }
+        log.v { "User:\n${userData.getUser(id)}" }
         refreshService = sessionRefresh()
     }
 
@@ -238,14 +238,14 @@ open class AtpAgent: KoinComponent {
             return@withContext
         }
         api.getSession().onSuccess {
-            Butterfly.log.d { "New session:\n$it" }
+            log.d { "New session:\n$it" }
             val newServer = extractServer(it.didDoc)
             if (newServer != newUser.server) {
                 userData.removeUser(newId)
                 userData.addUser(newUser.copy(server = newServer))
             }
         }.onFailure {
-            Butterfly.log.e { "Failed to get session: $it" }
+            log.e { "Failed to get session: $it" }
             setAuth(null)
         }
     }
