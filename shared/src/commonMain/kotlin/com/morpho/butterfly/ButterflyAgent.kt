@@ -92,7 +92,7 @@ open class ButterflyAgent: AtpAgent() {
     var labelers: List<Did> = emptyList()
         protected set
 
-    val appLabelers: List<Did> = listOf(BSKY_LABELER_DID)
+    protected val appLabelers: List<Did> = listOf(BSKY_LABELER_DID)
 
     suspend fun createRecord(record: RecordUnion) : Result<StrongRef> {
         val did = id ?: return Result.failure(Error("Not logged in"))

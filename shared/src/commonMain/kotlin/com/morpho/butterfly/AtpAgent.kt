@@ -153,7 +153,7 @@ open class AtpAgent: KoinComponent {
         return TokenStatus.Valid
     }
 
-    open var api: BlueskyApi = XrpcBlueskyApi(atpClient)
+    var api: BlueskyApi = XrpcBlueskyApi(atpClient, butterflySerializersModule)
 
 
     protected fun refreshSession() = serviceScope.launch {
@@ -184,14 +184,6 @@ open class AtpAgent: KoinComponent {
     }
 
     init {
-        // Reset this here, because of funny business in derived classes
-        // See:
-        // https://discuss.kotlinlang.org/t/npes-when-overriding-vals-but-not-in-constructor-init-block/20888/2
-        // When a derived class overrides `api`, it will be null during this init block.
-        // We VERY much need it to be valid to do the refresh, etc.
-        //
-        // Setting it explicitly here works around that.
-        XrpcBlueskyApi(atpClient).also { this.api = it }
         serviceScope.launch {
 
             when (checkTokens(auth)) {
