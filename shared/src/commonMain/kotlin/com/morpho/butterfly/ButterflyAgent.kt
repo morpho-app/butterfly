@@ -64,6 +64,11 @@ import com.atproto.repo.DeleteRecordRequest
 import com.atproto.repo.GetRecordQuery
 import com.atproto.repo.PutRecordRequest
 import com.atproto.repo.StrongRef
+import com.morpho.butterfly.auth.AuthInfo
+import com.morpho.butterfly.auth.Credentials
+import com.morpho.butterfly.auth.Server
+import com.morpho.butterfly.auth.SessionRepository
+import com.morpho.butterfly.auth.UserRepository
 import com.morpho.butterfly.model.Blob
 import com.morpho.butterfly.model.RecordType
 import com.morpho.butterfly.model.RecordUnion
@@ -85,7 +90,10 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.lighthousegames.logging.logging
 
 
-open class ButterflyAgent: AtpAgent() {
+open class ButterflyAgent(
+    userData: UserRepository,
+    session: SessionRepository,
+): AtpAgent(userData, session) {
     var prefs: BskyPreferences = BskyPreferences()
         protected set
 
@@ -179,6 +187,22 @@ open class ButterflyAgent: AtpAgent() {
         if (id == null) return Result.failure(Error("Not logged in"))
         log.v { "Deleting record $rkey of type $type" }
         return api.deleteRecord(DeleteRecordRequest(id!!, type.collection, rkey))
+    }
+
+    override suspend fun resumeSession(){
+        super.resumeSession()
+        getPreferences()
+    }
+
+    override suspend fun login(
+        credentials: Credentials,
+        userServer: Server
+    ): Result<AuthInfo> {
+        val result = super.login(credentials, userServer)
+        if (result.isSuccess) {
+            getPreferences()
+        }
+        return result
     }
 
     fun post(post: app.bsky.feed.Post) = CoroutineScope(Dispatchers.IO).launch { createRecord(RecordUnion.MakePost(post)) }

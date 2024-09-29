@@ -14,7 +14,7 @@ fun HttpClient.withXrpcConfiguration(
   val jsonEnvironment = Json {
     ignoreUnknownKeys = true
     classDiscriminator = "${'$'}type"
-    serializersModule = polySerializersModule
+    //serializersModule = polySerializersModule
   }
 
   install(ContentNegotiation) {

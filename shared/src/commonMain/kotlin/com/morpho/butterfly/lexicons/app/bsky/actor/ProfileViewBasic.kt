@@ -17,7 +17,9 @@ public data class ProfileViewBasic(
   public val viewer: ViewerState? = null,
   public val associated: ProfileAssociated? = null,
   public val labels: ReadOnlyList<Label> = persistentListOf(),
-  public val createdAt: Timestamp? = null // Datetime
+  public val createdAt: Timestamp? = null, // Datetime
+  public val bridgyOriginalDescription: String? = null,
+  public val bridgyOriginalUrl: String? = null,
 ) {
   init {
     require(displayName == null || displayName.count() <= 640) {

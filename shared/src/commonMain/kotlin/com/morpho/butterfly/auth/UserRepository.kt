@@ -24,6 +24,7 @@ import okio.Path.Companion.toPath
 interface UserRepository {
     suspend fun findUser(id: AtIdentifier): AtpUser?
     fun getUser(id: AtIdentifier?): AtpUser?
+    fun users(): Flow<List<AtpUser>>
     suspend fun setAuth(id: AtIdentifier, auth: AuthInfo?): Boolean
     suspend fun getAuth(id: AtIdentifier): AuthInfo?
     suspend fun addUser(credentials: Credentials, did: Did, server: Server)
@@ -42,18 +43,22 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
     private val _users: Flow<List<AtpUser>>
         get() = _userStore.updatesOrEmpty.distinctUntilChanged()
 
-    override fun firstUser(): AtpUser? = runBlocking(Dispatchers.IO) { _userStore.getOrEmpty().firstOrNull() }
+    override fun users(): Flow<List<AtpUser>> = _users
+
+    override fun firstUser(): AtpUser? = runBlocking(Dispatchers.IO) {
+        _userStore.getOrEmpty().firstOrNull()
+    }
 
     override fun getUser(id: AtIdentifier?): AtpUser? = runBlocking(Dispatchers.IO) {
         if (id == null) firstUser() else _users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id }
     }
 
     override suspend fun findUser(id: AtIdentifier) = coroutineScope {
-        async { _users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id } }.await()
+        async(Dispatchers.IO) { _users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id } }.await()
     }
 
     override suspend fun setAuth(id: AtIdentifier, auth: AuthInfo?): Boolean = coroutineScope {
-        return@coroutineScope async {
+        return@coroutineScope async(Dispatchers.IO) {
             val user =_users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id}
             if (user != null) {
                 val update = launch(Dispatchers.IO) {
@@ -67,7 +72,7 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
     }
 
     override suspend fun getAuth(id: AtIdentifier): AuthInfo? = coroutineScope {
-        async { _users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id}?.auth }.await()
+        async(Dispatchers.IO) { _users.firstOrNull()?.firstOrNull { it.id == id || it.handle == id}?.auth }.await()
     }
     override suspend fun addUser(credentials: Credentials, did: Did, server: Server): Unit = coroutineScope  {
         launch(Dispatchers.IO) { _userStore.plus(AtpUser(credentials, did, server)) }

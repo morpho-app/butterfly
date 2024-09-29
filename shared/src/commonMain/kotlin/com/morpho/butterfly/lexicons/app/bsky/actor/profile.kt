@@ -27,6 +27,8 @@ public data class Profile(
   public val labels: ProfileLabelsUnion? = null,
   public val joinedViaStarterPack: StrongRef? = null,
   public val createdAt: Timestamp? = null,
+  public val bridgyOriginalDescription: String? = null,
+  public val bridgyOriginalUrl: String? = null,
 ) {
   init {
     require(displayName == null || displayName.count() <= 640) {

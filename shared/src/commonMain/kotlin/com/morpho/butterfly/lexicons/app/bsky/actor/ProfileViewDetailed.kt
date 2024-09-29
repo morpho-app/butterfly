@@ -27,6 +27,8 @@ public data class ProfileViewDetailed(
   public val createdAt: Timestamp? = null,
   public val viewer: ViewerState? = null,
   public val labels: ReadOnlyList<Label> = persistentListOf(),
+  public val bridgyOriginalDescription: String? = null,
+  public val bridgyOriginalUrl: String? = null,
 ) {
   init {
     require(displayName == null || displayName.count() <= 640) {

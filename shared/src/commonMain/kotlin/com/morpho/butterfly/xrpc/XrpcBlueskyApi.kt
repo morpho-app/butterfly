@@ -2,11 +2,11 @@ package com.morpho.butterfly.xrpc
 
 import app.bsky.actor.GetPreferencesResponse
 import app.bsky.actor.GetProfileQuery
-import app.bsky.actor.GetProfileResponse
 import app.bsky.actor.GetProfilesQuery
 import app.bsky.actor.GetProfilesResponse
 import app.bsky.actor.GetSuggestionsQuery
 import app.bsky.actor.GetSuggestionsResponse
+import app.bsky.actor.ProfileViewDetailed
 import app.bsky.actor.PutPreferencesRequest
 import app.bsky.actor.SearchActorsQuery
 import app.bsky.actor.SearchActorsResponse
@@ -842,7 +842,7 @@ public class XrpcBlueskyApi(
     ).toAtpResult()
   }
 
-  override suspend fun getProfile(params: GetProfileQuery): Result<GetProfileResponse> {
+  override suspend fun getProfile(params: GetProfileQuery): Result<ProfileViewDetailed> {
     return client.query(
       path = "/xrpc/app.bsky.actor.getProfile",
       queryParams = params.asList(),

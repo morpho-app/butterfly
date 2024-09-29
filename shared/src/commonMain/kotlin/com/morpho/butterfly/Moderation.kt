@@ -18,6 +18,8 @@ import com.atproto.label.LabelValues
 import com.atproto.label.Severity
 import com.atproto.label.toVisibility
 import com.morpho.butterfly.model.Timestamp
+import dev.icerock.moko.parcelize.Parcelable
+import dev.icerock.moko.parcelize.Parcelize
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -295,6 +297,7 @@ enum class LabelValueDefFlag {
 
 
 @Serializable
+@Parcelize
 @Immutable
 open class InterpretedLabelDefinition(
     val identifier: String,
@@ -310,7 +313,7 @@ open class InterpretedLabelDefinition(
     val localizedDescription: String = "",
     @Contextual
     val allDescriptions: List<LabelValueDefinitionStrings> = persistentListOf(),
-) {
+): Parcelable {
     fun copy(
         identifier: String = this.identifier,
         definedBy: String? = this.definedBy,

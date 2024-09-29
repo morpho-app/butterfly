@@ -15,17 +15,20 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.takeFrom
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -36,14 +39,59 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.lighthousegames.logging.logging
 import kotlin.time.Duration
 
-open class AtpAgent: KoinComponent {
-    protected val userData: UserRepository by inject()
-    protected val session: SessionRepository by inject()
+
+fun getAtpClient(
+    sessionTokens: MutableStateFlow<BearerTokens?>,
+    server: Server,
+): HttpClient {
+    return HttpClient(CIO) {
+        engine {
+            pipelining = false
+        }
+
+        install(Logging) {
+            logger = Logger.DEFAULT
+            level = LogLevel.HEADERS //LogLevel.ALL
+        }
+
+        install(JWTAuthPlugin) {
+            authTokens = sessionTokens
+        }
+
+        install(ContentEncoding) {
+            gzip(1.0F)
+            deflate(0.9F)
+            identity(0.8F)
+        }
+
+        install(HttpCache) {
+            //publicStorage(getPlatformCache())
+        }
+
+        defaultRequest {
+            val hostUrl = url.takeFrom(server.host)
+            url.protocol = hostUrl.protocol
+            url.host = hostUrl.host
+            url.port = hostUrl.port
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = Long.MAX_VALUE // TODO: make this configurable
+        }
+
+        expectSuccess = false
+    }
+}
+
+open class AtpAgent(
+    protected val userData: UserRepository,
+    protected val session: SessionRepository
+) {
+    //protected val userData: UserRepository by inject()
+    //protected val session: SessionRepository by inject()
 
     val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -79,7 +127,7 @@ open class AtpAgent: KoinComponent {
     }
 
     val isLoggedIn: Boolean
-        get() = auth != null
+        get() = auth != null && refreshService != null
 
     protected val sessionTokens = MutableStateFlow(
         if (checkTokens(auth) != TokenStatus.NoAuth) auth?.toTokens()
@@ -99,37 +147,7 @@ open class AtpAgent: KoinComponent {
         refreshJwt = tokens.refreshToken,
     )
 
-    protected var atpClient = HttpClient(CIO) {
-        engine {
-            pipelining = false
-        }
-
-        install(Logging) {
-            logger = Logger.DEFAULT
-            level = LogLevel.INFO //LogLevel.ALL
-        }
-
-        install(JWTAuthPlugin) {
-            authTokens = sessionTokens
-        }
-
-        install(HttpCache) {
-            //publicStorage(getPlatformCache())
-        }
-
-        defaultRequest {
-            val hostUrl = url.takeFrom(server.host)
-            url.protocol = hostUrl.protocol
-            url.host = hostUrl.host
-            url.port = hostUrl.port
-        }
-
-        install(HttpTimeout) {
-            requestTimeoutMillis = Long.MAX_VALUE // TODO: make this configurable
-        }
-
-        expectSuccess = false
-    }
+    protected var atpClient = getAtpClient(sessionTokens, server)
 
 
     protected fun checkTokens(auth: AuthInfo?): TokenStatus {
@@ -153,7 +171,7 @@ open class AtpAgent: KoinComponent {
         return TokenStatus.Valid
     }
 
-    var api: BlueskyApi = XrpcBlueskyApi(atpClient, butterflySerializersModule)
+    var api: BlueskyApi = XrpcBlueskyApi(atpClient)
 
 
     protected fun refreshSession() = serviceScope.launch {
@@ -187,7 +205,10 @@ open class AtpAgent: KoinComponent {
         serviceScope.launch {
 
             when (checkTokens(auth)) {
-                TokenStatus.Valid -> resumeSession()
+                TokenStatus.Valid -> {
+                    //delay(1000)
+                    resumeSession()
+                }
                 TokenStatus.AccessExpired -> {
                     log.d { "Refreshing..." }
                     refreshSession().invokeOnCompletion { serviceScope.launch { resumeSession() } }
@@ -208,7 +229,8 @@ open class AtpAgent: KoinComponent {
         } else defaultServer
     }
 
-    protected suspend fun resumeSession() = withContext(Dispatchers.IO) {
+    protected open suspend fun resumeSession() = withContext(Dispatchers.IO) {
+        resetClient()
         setAuth(auth)
         log.d { "Startup auth:\n$auth" }
         log.d { "User ID: $id" }
@@ -242,6 +264,11 @@ open class AtpAgent: KoinComponent {
         }
     }
 
+    private fun resetClient() {
+        atpClient = getAtpClient(sessionTokens, server)
+        api = XrpcBlueskyApi(atpClient)
+    }
+
 
     fun logout() = serviceScope.launch {
         endSession()
@@ -249,13 +276,22 @@ open class AtpAgent: KoinComponent {
 
     suspend fun endSession() = withContext(Dispatchers.IO) {
         api.deleteSession()
+        atpClient.engine.dispatcher.cancelChildren(
+            CancellationException("Session ended")
+        )
+        atpClient.engine.coroutineContext.cancelChildren(
+            CancellationException("Session ended")
+        )
+        atpClient.close()
         setAuth(null)
+        resetClient()
     }
 
-    suspend fun login(
+    open suspend fun login(
         credentials: Credentials,
         userServer: Server = Server.BlueskySocial
     ): Result<AuthInfo> {
+
         return withContext(Dispatchers.IO) {
             api.createSession(
                 CreateSessionRequest(

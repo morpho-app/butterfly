@@ -86,6 +86,8 @@ public data class Post(
   public val embed: PostEmbedUnion? = null,
   public val langs: ReadOnlyList<Language> = persistentListOf(),
   public val labels: PostLabelsUnion? = null,
+  public val bridgyOriginalText: String? = null,
+  public val bridgyOriginalUrl: String? = null,
   /**
    * Additional non-inline tags describing this post.
    */

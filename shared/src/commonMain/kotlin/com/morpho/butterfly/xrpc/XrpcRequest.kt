@@ -12,7 +12,12 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.websocket.Frame
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import morpho.app.api.response.StatusCode
 
@@ -22,6 +27,7 @@ suspend inline fun HttpClient.query(
 ): HttpResponse {
   return get(path) {
     queryParams.forEach { (key, value) -> parameter(key, value) }
+    //headers["Accept-Encoding"] = "identity"
   }
 }
 
@@ -36,6 +42,7 @@ suspend inline fun <reified T : Any> HttpClient.procedure(
 ): HttpResponse {
   return post(path) {
     headers["Content-Type"] = encoding
+    //headers["Accept-Encoding"] = "identity"
     setBody(body)
   }
 }
@@ -78,7 +85,15 @@ suspend inline fun <reified T : Any> HttpResponse.toAtpResult(): Result<T> {
 
   return when (val code = StatusCode.fromCode(status.value)) {
     is StatusCode.Okay -> {
-      Result.success(body())
+      val maybeBody = runCatching<T> { body() }.getOrNull()
+      val maybeError = if (maybeBody == null) {
+        kotlin.runCatching<AtpError> { body() }.getOrNull()
+      } else {
+        null
+      }
+      if (maybeBody == null) return Result.failure(
+        AtpException(code, headers, maybeError)
+      ) else Result.success(maybeBody)
     }
     is StatusCode.Failure -> {
       val maybeBody = runCatching<T> { body() }.getOrNull()

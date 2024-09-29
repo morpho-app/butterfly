@@ -59,6 +59,7 @@ kotlin {
             implementation(libs.ktor.websockets)
             implementation(libs.ktor.client.resources)
             implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.encoding)
             implementation(libs.kotlin.stdlib)
             implementation(libs.kstore)
             implementation(libs.kstore.file)
