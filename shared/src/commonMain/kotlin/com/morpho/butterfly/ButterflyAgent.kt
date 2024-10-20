@@ -488,8 +488,12 @@ open class ButterflyAgent(
         seenAt: Timestamp? = null,
     ): Result<Long> {
         if (!isLoggedIn) return Result.failure(Error("Not logged in"))
-        return withContext(Dispatchers.IO) {
-            api.getUnreadCount(GetUnreadCountQuery(seenAt)).map { it.count }
+        runCatching {
+            return withContext(Dispatchers.IO) {
+                api.getUnreadCount(GetUnreadCountQuery(false,seenAt)).map { it.count }
+            }
+        }.getOrElse {
+            return Result.failure(Error("Failed to get unread notifications count: $it"))
         }
     }
 
