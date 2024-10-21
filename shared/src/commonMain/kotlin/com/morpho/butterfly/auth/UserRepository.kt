@@ -41,7 +41,7 @@ class UserRepositoryImpl(storageDir: String): UserRepository {
         enableCache = true
     )
     private val _users: Flow<List<AtpUser>>
-        get() = _userStore.updatesOrEmpty.distinctUntilChanged()
+        get() = _userStore.updatesOrEmpty
 
     override fun users(): Flow<List<AtpUser>> = _users
 

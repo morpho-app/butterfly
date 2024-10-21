@@ -189,7 +189,7 @@ open class ButterflyAgent(
         return api.deleteRecord(DeleteRecordRequest(id!!, type.collection, rkey))
     }
 
-    override suspend fun resumeSession(){
+    override suspend fun resumeSession() {
         super.resumeSession()
         getPreferences()
     }

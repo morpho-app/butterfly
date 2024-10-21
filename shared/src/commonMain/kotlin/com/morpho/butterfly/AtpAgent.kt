@@ -230,7 +230,7 @@ open class AtpAgent(
     }
 
     protected open suspend fun resumeSession() = withContext(Dispatchers.IO) {
-        resetClient()
+        //resetClient()
         setAuth(auth)
         log.d { "Startup auth:\n$auth" }
         log.d { "User ID: $id" }
@@ -251,6 +251,9 @@ open class AtpAgent(
             log.e { "Existing user $newId not found" }
             return@withContext
         }
+        id = newUser.id
+        setAuth(newUser.auth)
+        resetClient()
         api.getSession().onSuccess {
             log.d { "New session:\n$it" }
             val newServer = extractServer(it.didDoc)
@@ -258,6 +261,7 @@ open class AtpAgent(
                 userData.removeUser(newId)
                 userData.addUser(newUser.copy(server = newServer))
             }
+            refreshService = sessionRefresh()
         }.onFailure {
             log.e { "Failed to get session: $it" }
             setAuth(null)
@@ -312,6 +316,7 @@ open class AtpAgent(
                 val newServer = extractServer(it.didDoc, userServer)
                 userData.addUser(credentials, it.did, newServer)
                 setAuth(it)
+                resetClient()
                 refreshService = sessionRefresh()
             }
         }
