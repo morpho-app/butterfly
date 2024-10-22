@@ -856,7 +856,7 @@ enum class LabelTarget {
 }
 
 @Immutable
-
+@Parcelize
 @Serializable
 open class ModBehaviour(
     val profileList: LabelAction = LabelAction.None,
@@ -867,7 +867,7 @@ open class ModBehaviour(
     val contentList: LabelAction = LabelAction.None,
     val contentView: LabelAction = LabelAction.None,
     val contentMedia: LabelAction = LabelAction.None,
-) {
+): Parcelable {
     init {
         require(avatar != LabelAction.Inform)
         require(banner != LabelAction.Inform && banner != LabelAction.Alert)
@@ -907,14 +907,14 @@ open class ModBehaviour(
     }
 }
 
-
+@Parcelize
 @Immutable
 @Serializable
 data class ModBehaviours(
     val account: ModBehaviour = ModBehaviour(),
     val profile: ModBehaviour = ModBehaviour(),
     val content: ModBehaviour = ModBehaviour(),
-) {
+): Parcelable {
     fun forScope(scope: Blurs, target: LabelTarget): List<LabelAction> {
         return when (target) {
             LabelTarget.Account -> when (scope) {
@@ -944,6 +944,7 @@ data class ModBehaviours(
     }
 }
 
+@Parcelize
 @Immutable
 @Serializable
 data object BlockBehaviour: ModBehaviour(
@@ -955,6 +956,7 @@ data object BlockBehaviour: ModBehaviour(
     contentView = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object MuteBehaviour: ModBehaviour(
@@ -964,6 +966,7 @@ data object MuteBehaviour: ModBehaviour(
     contentView = LabelAction.Inform,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object MuteWordBehaviour: ModBehaviour(
@@ -971,6 +974,7 @@ data object MuteWordBehaviour: ModBehaviour(
     contentView = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object HideBehaviour: ModBehaviour(
@@ -978,24 +982,28 @@ data object HideBehaviour: ModBehaviour(
     contentView = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object InappropriateMediaBehaviour: ModBehaviour(
     contentMedia = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object InappropriateAvatarBehaviour: ModBehaviour(
     avatar = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object InappropriateBannerBehaviour: ModBehaviour(
     banner = LabelAction.Blur,
 )
 
+@Parcelize
 @Immutable
 @Serializable
 data object InappropriateDisplayNameBehaviour: ModBehaviour(
@@ -1018,7 +1026,7 @@ val BlurAllMedia = ModBehaviours(
     ),
 )
 
-
+@Parcelize
 @Immutable
 @Serializable
 data object NoopBehaviour: ModBehaviour()
